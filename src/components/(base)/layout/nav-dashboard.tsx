@@ -53,13 +53,13 @@ export function NavDashboard({ user }: { user?: any } = {}) {
             iconMagnification={52}
             className="h-14 border-border/40 bg-background/60 backdrop-blur-md px-6 gap-6"
           >
-            <Link href="/kore">
+            <Link href="/cermadsa">
               <DockIcon label="Dashboard">
                 <div className="relative flex flex-col items-center justify-center h-full">
                   <Home
-                    className={`size-6 transition-all duration-300 ${isActive("/kore") ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    className={`size-6 transition-all duration-300 ${isActive("/cermadsa") ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                   />
-                  {isActive("/kore") && <ActiveDot />}
+                  {isActive("/cermadsa") && <ActiveDot />}
                 </div>
               </DockIcon>
             </Link>
@@ -77,7 +77,11 @@ export function NavDashboard({ user }: { user?: any } = {}) {
 
             <div className="h-6 w-px bg-border/40 self-center" />
 
-            <DockIcon label="Salir" onClick={handleLogout} className="group">
+            <DockIcon
+              label="Cerrar Sesión"
+              onClick={handleLogout}
+              className="group"
+            >
               <LogOut className="size-6 text-muted-foreground group-hover:text-destructive transition-colors duration-300" />
             </DockIcon>
           </Dock>

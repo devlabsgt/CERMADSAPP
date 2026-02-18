@@ -14,8 +14,8 @@ export function Dashboard() {
     setIsNavigating(true);
 
     setTimeout(() => {
-      router.push("/kore/laarada");
-    }, 3000);
+      router.push("/cermadsa/laarada");
+    }, 1000);
   };
 
   return (
@@ -32,7 +32,7 @@ export function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Link
-          href="/kore/laarada"
+          href="/cermadsa/laarada"
           onClick={handleCardClick}
           className={`group relative flex flex-col items-center justify-center h-48 gap-4 rounded-xl border bg-card/40 backdrop-blur-sm shadow-sm transition-all duration-300 
             ${

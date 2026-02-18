@@ -1,7 +1,39 @@
 
+create table profiles (
+  id uuid references auth.users on delete cascade not null primary key,
+  nombre text,
+  dpi text,
+  genero text,
+  fecha_nacimiento date,
+  direccion text,
+  telefono text,
+  nit text,
+  contacto_emergencia text,
+  rol text,
+  avatar_url text,
+  activo bool default true,
+  created_at timestamptz default now(),
+  email text,
+  telefono_emergencia text
+);
+
+
+alter table profiles enable row level security;
+
+create policy "Acceso total para usuarios autenticados"
+on profiles
+for all
+to authenticated
+using (true)
+with check (true);
+
+
+
+
+
 INSERT INTO public.profiles (id, nombre, email, telefono, rol, activo)
 SELECT 
-    'id', 
+    'adlja;sldjka56356', --aui pegue el id del usuario que se encuentra en auth.users con email
     'Kore Devs', 
     'kore@gmail.com', 
     '42140797', 

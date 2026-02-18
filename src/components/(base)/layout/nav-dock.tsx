@@ -9,7 +9,7 @@ interface NavDockProps {
 
 export function NavDock({ user }: NavDockProps) {
   const pathname = usePathname();
-  const isDashboard = pathname.startsWith("/kore");
+  const isDashboard = pathname.startsWith("/cermadsa");
 
   if (isDashboard) {
     return <NavDashboard />;

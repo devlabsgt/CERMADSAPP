@@ -161,6 +161,6 @@ export async function toggleUserStatus(userId: string, isBanned: boolean) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/kore/users");
+  revalidatePath("/cermadsa/usuarios");
   return { success: true };
 }

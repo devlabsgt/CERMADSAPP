@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import { AuroraText } from "@/components/ui/aurora-text";
 
 export function ContactSection() {
-  const telDisplay = "+1 (845) 309-7936";
-  const whatsappUrl = "https://wa.me/18453097936";
+  const telDisplay = "+502 0000-0000";
+  const whatsappUrl = "https://wa.me/50200000000";
 
   return (
     <section
@@ -24,11 +24,11 @@ export function ContactSection() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
             <PhoneCall className="size-3 text-primary" />
             <span className="text-[9px] font-bold uppercase tracking-widest text-primary">
-              Contact
+              Contacto
             </span>
           </div>
           <h2 className="text-3xl lg:text-5xl font-black uppercase tracking-tighter italic leading-none">
-            Let's Talk
+            Cotice con nosotros
           </h2>
         </motion.div>
 
@@ -42,13 +42,13 @@ export function ContactSection() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="space-y-4 lg:space-y-6 text-center lg:text-left">
               <p className="text-muted-foreground text-sm lg:text-base font-medium leading-relaxed">
-                Visit our lot in Brewster or chat with us online for immediate
-                assistance.
+                Visite nuestra bodega de materiales o contáctenos en línea para
+                recibir asesoría técnica en su proyecto de construcción.
               </p>
               <div className="flex items-center justify-center lg:justify-start gap-4 p-3 rounded-xl bg-muted/50 border border-zinc-200 dark:border-zinc-800">
                 <MapPin className="text-primary size-4 shrink-0" />
                 <span className="font-bold uppercase text-[10px] lg:text-xs tracking-tight leading-tight">
-                  3651 Danbury Road, Brewster, NY 10509
+                  Concepción Las Minas, Chiquimula, Guatemala
                 </span>
               </div>
             </div>
@@ -65,21 +65,22 @@ export function ContactSection() {
                     <p className="text-[9px] opacity-60 tracking-widest text-inherit">
                       WhatsApp
                     </p>
-                    <p className="text-sm lg:text-lg text-inherit">Chat Now</p>
+                    <p className="text-sm lg:text-lg text-inherit">
+                      Chat de Ventas
+                    </p>
                   </div>
                 </div>
               </a>
 
-              {/* Call Us Button - Texto: Negro(Light) / Blanco(Dark) -> Hover: Blanco(Light) / Negro(Dark) */}
               <a
-                href={`tel:18453097936`}
+                href={`tel:${telDisplay}`}
                 className="group flex items-center justify-between p-4 lg:p-6 rounded-3xl bg-background border border-zinc-300 dark:border-zinc-700 hover:bg-primary text-black dark:text-white hover:text-white dark:hover:text-black transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-4">
                   <Phone className="size-6 lg:size-8 text-primary group-hover:text-inherit" />
                   <div className="text-left font-bold uppercase">
                     <p className="text-[9px] opacity-60 tracking-widest text-inherit">
-                      Call Us Now
+                      Llámenos ahora
                     </p>
                     <p className="text-sm lg:text-lg text-inherit tracking-tighter">
                       {telDisplay}
@@ -92,7 +93,6 @@ export function ContactSection() {
         </motion.div>
       </div>
 
-      {/* Footer anclado abajo con texto XS fijo */}
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -101,17 +101,17 @@ export function ContactSection() {
         className="text-center mt-auto space-y-1"
       >
         <p className="text-xs font-bold uppercase tracking-widest opacity-40">
-          © 2025 THE CARS PLACE LOT INC.
+          © 2026 CERMAD S.A.
         </p>
         <p className="text-xs font-bold uppercase tracking-widest">
-          Powered by{" "}
+          Desarrollado por{" "}
           <a
             href="https://www.oscar27jimenez.com"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline cursor-pointer transition-all inline-block"
           >
-            <AuroraText>Kore.dev</AuroraText>
+            <AuroraText>CERMAD | Construcción</AuroraText>
           </a>
         </p>
       </motion.div>

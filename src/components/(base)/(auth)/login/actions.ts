@@ -38,5 +38,5 @@ export async function login(
     };
   }
 
-  redirect("/kore");
+  redirect("/cermadsa");
 }

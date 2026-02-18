@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/components/(base)/providers/UserProvider";
+import { logout } from "@/app/actions";
+import Swal from "sweetalert2";
+import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 import {
   Menu,
   X,
@@ -12,6 +16,15 @@ import {
   PhoneCall,
   LayoutGrid,
   LogIn,
+  LogOut,
+  Home,
+  Package,
+  ClipboardList,
+  History,
+  CreditCard,
+  Truck,
+  ReceiptText,
+  PieChart,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -21,17 +34,44 @@ import { AuroraText } from "@/components/ui/aurora-text";
 export default function Header() {
   const user = useUser();
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    console.log("Header (desde Context):", user);
-  }, [user]);
+  useEffect(() => {}, [user]);
 
   const metadata = user?.user_metadata || {};
   const username =
     metadata.username || user?.email?.split("@")[0] || "Invitado";
   const userRole = metadata.rol || user?.role || "user";
-  const initial = username.charAt(0).toUpperCase();
   const canManageProfiles = ["super", "admin", "rrhh"].includes(userRole);
+
+  const adminLinks = [
+    { href: "/cermadsa", label: "Inicio", icon: Home },
+    { href: "/cermadsa/laarada/clientes", label: "Clientes", icon: Users },
+    { href: "/cermadsa/laarada/productos", label: "Productos", icon: Package },
+    {
+      href: "/cermadsa/laarada/pedidos",
+      label: "Pedidos",
+      icon: ClipboardList,
+    },
+    {
+      href: "/cermadsa/laarada/historiales",
+      label: "Historiales",
+      icon: History,
+    },
+    { href: "/cermadsa/laarada/creditos", label: "Créditos", icon: CreditCard },
+    {
+      href: "/cermadsa/laarada/proveedores",
+      label: "Proveedores",
+      icon: Truck,
+    },
+    {
+      href: "/cermadsa/laarada/gastos",
+      label: "Registro de gastos",
+      icon: ReceiptText,
+    },
+    { href: "/cermadsa/laarada/reportes", label: "Reportes", icon: PieChart },
+    { href: "/cermadsa/usuarios", label: "Usuarios", icon: Users },
+  ];
 
   const publicLinks = [
     { href: "#inventory", label: "Inventory", icon: CarFront },
@@ -40,21 +80,55 @@ export default function Header() {
     { href: "#contact", label: "Contact", icon: PhoneCall },
   ];
 
+  const handleLogout = async () => {
+    setIsOpen(false);
+
+    const isDark = document.documentElement.classList.contains("dark");
+
+    const result = await Swal.fire({
+      title: "¿Cerrar sesión?",
+      text: "Se cerrará tu sesión actual.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: isDark ? "#3b82f6" : "#2563eb",
+      cancelButtonColor: "#ef4444",
+      confirmButtonText: "Sí, salir",
+      cancelButtonText: "Cancelar",
+      background: isDark ? "#09090b" : "#ffffff",
+      color: isDark ? "#ffffff" : "#000000",
+    });
+
+    if (result.isConfirmed) {
+      await logout();
+    }
+  };
+
+  const inicioLink = adminLinks[0];
+  const usuariosLink = adminLinks[adminLinks.length - 1];
+  const middleLinks = adminLinks.slice(1, -1);
+  const showMiddleSection = pathname?.startsWith("/cermadsa/laarada");
+
   return (
     <>
-      <header className="w-fullbg-background transition-all">
-        <div className="mx-auto flex h-24 items-center justify-between px-6 lg:px-12">
+      <header className="w-full bg-background transition-all border-b border-border/40 md:border-none">
+        <div className="mx-auto flex h-24 items-center justify-between pr-6 lg:pl-5">
           <div className="flex items-center h-full">
             <Link
-              href={user ? "/kore" : "/"}
-              className="flex items-center h-full py-2"
+              href={user ? "/cermadsa" : "/"}
+              className="flex items-center h-full py-2 shrink-0"
             >
               <img
                 src="/icon.png"
                 alt="Kore.dev"
-                className="h-full w-auto object-contain rounded-lg border border-gray-500"
+                className="h-full w-auto object-contain rounded-lg"
               />
             </Link>
+
+            {user && (
+              <div className="hidden md:flex ml-8 border-l border-border/30 h-10 items-center">
+                <BreadcrumbNav />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -73,6 +147,12 @@ export default function Header() {
         </div>
       </header>
 
+      {user && (
+        <div className="md:hidden w-full px-6 py-3 border-b border-border/40 bg-muted/10">
+          <BreadcrumbNav />
+        </div>
+      )}
+
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm transition-opacity"
@@ -86,7 +166,17 @@ export default function Header() {
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <div className="flex justify-end p-6">
+        <div className="flex items-center justify-between p-6">
+          {user ? (
+            <div className="flex flex-col text-sm">
+              <span className="font-bold leading-tight">{username}</span>
+              <span className="text-muted-foreground text-xs font-medium uppercase leading-tight">
+                {userRole}
+              </span>
+            </div>
+          ) : (
+            <div />
+          )}
           <button
             onClick={() => setIsOpen(false)}
             className="flex items-center justify-center rounded-xl p-2.5 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer"
@@ -98,39 +188,66 @@ export default function Header() {
         <div className="flex flex-col min-h-[calc(100%-80px)] px-6 pb-8">
           {user ? (
             <>
-              <div className="mb-8 p-4 rounded-xl bg-muted/30 border border-border/50">
-                <div className="flex items-center gap-3 select-none">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary uppercase shrink-0">
-                    {initial}
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <p className="text-sm font-bold text-foreground leading-none truncate">
-                      Usuario: <span className="underline">{username}</span>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-medium truncate mt-1">
-                      Rol: <span className="underline">{userRole}</span>
-                    </p>
-                  </div>
-                </div>
+              <div className="mb-8 mt-2">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-between rounded-xl bg-primary text-primary-foreground px-5 py-3 text-sm font-bold w-full hover:opacity-90 transition-all cursor-pointer"
+                >
+                  <span>Cerrar Sesión</span>
+                  <LogOut className="size-4 rotate-180" />
+                </button>
               </div>
 
-              <nav className="flex flex-col gap-6 mb-8 pl-2">
+              <nav className="flex flex-col mb-8 pl-2 w-full">
                 {canManageProfiles && (
-                  <Link
-                    href="/kore/users/"
-                    onClick={() => setIsOpen(false)}
-                    className="w-fit text-lg font-bold text-muted-foreground hover:text-foreground transition-colors relative group flex items-center gap-2"
-                  >
-                    <Users className="size-5" />
-                    <span>Gestionar usuarios</span>
-                    <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                  </Link>
+                  <>
+                    <div className="mb-6">
+                      <Link
+                        href={inicioLink.href}
+                        onClick={() => setIsOpen(false)}
+                        className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-3 py-1 relative group"
+                      >
+                        <inicioLink.icon className="size-5" />
+                        <span>{inicioLink.label}</span>
+                        <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                      </Link>
+                    </div>
+
+                    {showMiddleSection && (
+                      <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
+                        {middleLinks.map((link) => (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setIsOpen(false)}
+                            className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-3 py-1 relative group"
+                          >
+                            <link.icon className="size-5" />
+                            <span>{link.label}</span>
+                            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="pt-6 border-t border-border/90 w-full mt-6">
+                      <Link
+                        href={usuariosLink.href}
+                        onClick={() => setIsOpen(false)}
+                        className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-3 py-1 relative group"
+                      >
+                        <usuariosLink.icon className="size-5" />
+                        <span>{usuariosLink.label}</span>
+                        <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                      </Link>
+                    </div>
+                  </>
                 )}
               </nav>
             </>
           ) : (
             <>
-              <div className="mb-8">
+              <div className="mb-8 mt-2">
                 <Link
                   href="/login"
                   onClick={() => setIsOpen(false)}
@@ -177,7 +294,7 @@ export default function Header() {
                     rel="noopener noreferrer"
                     className="hover:underline cursor-pointer transition-all inline-block"
                   >
-                    <AuroraText>Kore.dev</AuroraText>
+                    <AuroraText>Kore | Ingeniería</AuroraText>
                   </a>
                 </p>
               </motion.div>

@@ -27,13 +27,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Kore - Engineering & Consulting",
+  title: "CERMAD S.A. - Construcción y Materiales",
   description:
-    "Aplicación plantilla para servicios de ingeniería y consultoría tecnológica.",
+    "Soluciones integrales en construcción y suministro de materiales de alta calidad.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Kore",
+    title: "CERMAD",
   },
   formatDetection: {
     telephone: false,

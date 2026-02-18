@@ -99,7 +99,7 @@ const UserStatusToggle = ({
       <div className="flex justify-between items-end mb-2">
         {isSelf ? (
           <span className="text-[10px] font-bold text-red-600 uppercase flex items-center gap-1">
-            <AlertTriangle size={12} /> No puedes banear tu propio perfil
+            <AlertTriangle size={12} /> No puede banear su propio perfil
           </span>
         ) : (
           <span className="text-xs font-semibold leading-none text-foreground/70">
