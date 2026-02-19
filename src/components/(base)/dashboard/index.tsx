@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export function Dashboard() {
   const router = useRouter();
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const handleCardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    setIsNavigating(true);
-
+  const handleNavigation = (href: string) => {
+    if (activeId) return;
+    setActiveId("la-arada");
     setTimeout(() => {
-      router.push("/cermadsa/laarada");
-    }, 1000);
+      router.push(href);
+    }, 1500);
   };
 
   return (
@@ -31,33 +31,48 @@ export function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Link
-          href="/cermadsa/laarada"
-          onClick={handleCardClick}
-          className={`group relative flex flex-col items-center justify-center h-48 gap-4 rounded-xl border bg-card/40 backdrop-blur-sm shadow-sm transition-all duration-300 
-            ${
-              isNavigating
-                ? "animate-pulse border-orange-500 shadow-lg shadow-orange-500/30 scale-[0.98]"
-                : "border-border/50 hover:border-orange-500 hover:shadow-md hover:shadow-orange-500/20"
-            }`}
+        <motion.div
+          layoutId="la-arada"
+          onClick={() => handleNavigation("/cermadsa/laarada")}
+          whileHover={{ scale: 1.02, y: -5 }}
+          animate={
+            activeId === "la-arada"
+              ? {
+                  scale: [1, 1.05, 1],
+                  transition: { duration: 1.5, ease: "easeInOut" },
+                }
+              : { scale: 1, y: 0 }
+          }
+          className={cn(
+            "group relative overflow-hidden rounded-[2.5rem] border flex flex-col justify-between p-6 bg-card shadow-sm cursor-pointer h-64",
+            "border-orange-500/20 bg-orange-500/5 dark:bg-[#121212] dark:border-orange-500/40",
+          )}
         >
-          <div className="relative h-20 w-20 overflow-hidden">
-            <Image
-              src="/logos/LaArada.png"
-              alt="Logo La Arada"
-              fill
-              className={`object-contain p-2 transition-transform duration-300 ${isNavigating ? "scale-110" : "group-hover:scale-130"}`}
-            />
+          <div className="relative z-10 shrink-0">
+            <div className="w-16 h-16 p-2 bg-white rounded-2xl border border-border/50 group-hover:scale-110 transition-transform duration-500 shadow-sm flex items-center justify-center">
+              <div className="relative w-full h-full">
+                <Image
+                  src="/logos/LaArada.png"
+                  alt="Logo La Arada"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="font-bold text-lg tracking-tight text-orange-500">
+
+          <div className="space-y-1 relative z-10 mt-auto">
+            <h3 className="text-2xl font-bold tracking-tight transition-colors text-orange-500">
               La Arada
-            </span>
-            <span className="text-xs tracking-tight text-white/50 group-hover:text-white ">
+            </h3>
+            <p className="text-sm text-orange-500 font-medium italic">
               Construyendo Junto a ti el futuro.
-            </span>
+            </p>
           </div>
-        </Link>
+
+          <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-current opacity-[0.03] dark:opacity-[0.05]" />
+        </motion.div>
       </div>
     </div>
   );

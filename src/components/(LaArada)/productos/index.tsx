@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle } from "lucide-react";
 import { useProducts } from "./lib/hooks";
 import ProductModal from "./modal/product-modal";
+import { cn } from "@/lib/utils";
 
 export default function ListadoProductos() {
   const { data: productos = [], isLoading } = useProducts();
@@ -36,7 +37,7 @@ export default function ListadoProductos() {
             Inventario de Productos
           </h1>
           <p className="text-muted-foreground text-xs md:text-sm">
-            Gestiona los materiales de la pedrinera.
+            Gestiona los materiales y niveles de stock de la pedrinera.
           </p>
         </div>
         <button
@@ -64,11 +65,16 @@ export default function ListadoProductos() {
           <table className="w-full text-[9px] md:text-sm text-left table-fixed sm:table-auto">
             <thead className="bg-muted/50 text-muted-foreground font-bold border-b uppercase tracking-widest">
               <tr>
-                <th className="w-[12%] md:w-auto px-2 md:px-6 py-4">Cod.</th>
-                <th className="w-[38%] md:w-auto px-2 md:px-6 py-4">Nombre</th>
-                <th className="w-[28%] md:w-auto px-2 md:px-6 py-4">Medida</th>
-                <th className="w-[22%] md:w-auto px-2 md:px-6 py-4 text-right">
+                <th className="w-[10%] md:w-auto px-2 md:px-6 py-4">Cod.</th>
+                <th className="w-[30%] md:w-auto px-2 md:px-6 py-4">Nombre</th>
+                <th className="w-[15%] md:w-auto px-2 md:px-6 py-4 text-right">
                   Precio
+                </th>
+                <th className="w-[15%] md:w-auto px-2 md:px-6 py-4 text-center">
+                  Min.
+                </th>
+                <th className="w-[15%] md:w-auto px-2 md:px-6 py-4 text-center">
+                  Stock
                 </th>
               </tr>
             </thead>
@@ -76,7 +82,7 @@ export default function ListadoProductos() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-muted-foreground italic"
                   >
                     Cargando productos...
@@ -85,33 +91,50 @@ export default function ListadoProductos() {
               ) : filteredProductos.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-muted-foreground"
                   >
                     No hay resultados.
                   </td>
                 </tr>
               ) : (
-                filteredProductos.map((prod: any) => (
-                  <tr
-                    key={prod.id}
-                    onClick={() => handleEdit(prod)}
-                    className="hover:bg-muted/50 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-2 md:px-6 py-4 font-mono font-bold text-primary truncate">
-                      {prod.codigo}
-                    </td>
-                    <td className="px-2 md:px-6 py-4 font-semibold uppercase truncate">
-                      {prod.nombre}
-                    </td>
-                    <td className="px-2 md:px-6 py-4 text-muted-foreground font-medium truncate">
-                      {prod.medida}
-                    </td>
-                    <td className="px-2 md:px-6 py-4 font-black text-foreground text-right whitespace-nowrap">
-                      Q{prod.precio_base.toFixed(2)}
-                    </td>
-                  </tr>
-                ))
+                filteredProductos.map((prod: any) => {
+                  const isLowStock = prod.stock_actual <= prod.stock_minimo;
+
+                  return (
+                    <tr
+                      key={prod.id}
+                      onClick={() => handleEdit(prod)}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer group"
+                    >
+                      <td className="px-2 md:px-6 py-4 font-mono font-bold text-primary truncate">
+                        {prod.codigo}
+                      </td>
+                      <td className="px-2 md:px-6 py-4 font-semibold uppercase truncate">
+                        {prod.nombre}
+                      </td>
+                      <td className="px-2 md:px-6 py-4 font-black text-foreground text-right whitespace-nowrap">
+                        Q{prod.precio_base.toFixed(2)}
+                      </td>
+                      <td className="px-2 md:px-6 py-4 text-center font-medium text-muted-foreground">
+                        {prod.stock_minimo}
+                      </td>
+                      <td className="px-2 md:px-6 py-4 text-center">
+                        <div
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded-full font-bold",
+                            isLowStock
+                              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                          )}
+                        >
+                          {isLowStock && <AlertTriangle className="size-3" />}
+                          {prod.stock_actual}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

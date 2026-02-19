@@ -10,7 +10,7 @@ import {
 } from "../lib/hooks";
 import { getNextProductCode } from "../lib/actions";
 import { useEffect } from "react";
-import { X, Trash2, Save, Package } from "lucide-react";
+import { X, Trash2, Save, Package, AlertTriangle } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import Swal from "sweetalert2";
 import { useTheme } from "next-themes";
@@ -44,8 +44,9 @@ export default function ProductModal({
       codigo: "",
       nombre: "",
       medida: "Metro Cúbico",
-      precio_base: 0,
-      activo: true,
+      precio_base: 90,
+      stock_actual: 0,
+      stock_minimo: 10,
     },
   });
 
@@ -53,14 +54,15 @@ export default function ProductModal({
     const prepareModal = async () => {
       if (!isOpen) return;
       if (productToEdit) {
-        reset({ ...productToEdit, activo: productToEdit.activo ?? true });
+        reset(productToEdit);
       } else {
         reset({
           codigo: "",
           nombre: "",
           medida: "Metro Cúbico",
-          precio_base: 0,
-          activo: true,
+          precio_base: 90,
+          stock_actual: 0,
+          stock_minimo: 10,
         });
         const code = await getNextProductCode();
         setValue("codigo", code);
@@ -167,15 +169,6 @@ export default function ProductModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-foreground/50 uppercase">
-                Medida
-              </label>
-              <input
-                {...register("medida")}
-                className="w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-foreground/50 uppercase">
                 Precio Base (Q)
               </label>
               <input
@@ -184,6 +177,41 @@ export default function ProductModal({
                 inputMode="decimal"
                 {...register("precio_base")}
                 className="w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/50 uppercase">
+                Medida
+              </label>
+              <input
+                {...register("medida")}
+                className="w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 p-3 rounded-lg bg-muted/20 border border-dashed border-border/50">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/50 uppercase flex items-center gap-1">
+                Stock Mínimo{" "}
+                <AlertTriangle className="size-3 text-orange-500" />
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register("stock_minimo")}
+                className="w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input focus:ring-2 focus:ring-primary/20 font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/50 uppercase">
+                Stock Actual
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register("stock_actual")}
+                className="w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input focus:ring-2 focus:ring-primary/20 font-mono"
               />
             </div>
           </div>

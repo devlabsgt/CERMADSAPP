@@ -9,11 +9,21 @@ export async function getProducts() {
   const { data, error } = await supabase
     .from("inv_productos")
     .select("*")
-    .eq("activo", true)
     .order("codigo", { ascending: true });
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function getLowStockCount() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("inv_productos")
+    .select("stock_actual, stock_minimo");
+
+  if (error || !data) return 0;
+
+  return data.filter((p) => p.stock_actual <= p.stock_minimo).length;
 }
 
 export async function createProduct(data: ProductFormValues) {
@@ -29,7 +39,6 @@ export async function createProduct(data: ProductFormValues) {
     .from("inv_productos")
     .select("codigo, nombre")
     .or(`codigo.eq.${result.data.codigo},nombre.eq.${result.data.nombre}`)
-    .eq("activo", true)
     .maybeSingle();
 
   if (existing) {
@@ -41,8 +50,14 @@ export async function createProduct(data: ProductFormValues) {
 
   const { error } = await supabase.from("inv_productos").insert(result.data);
 
-  if (error) return { error: error.message };
-  revalidatePath("/productos");
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "El código ya está registrado en el sistema." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/cermadsa/laarada/productos");
   return { success: true };
 }
 
@@ -60,7 +75,6 @@ export async function updateProduct(id: string, data: ProductFormValues) {
     .select("id, codigo, nombre")
     .or(`codigo.eq.${result.data.codigo},nombre.eq.${result.data.nombre}`)
     .neq("id", id)
-    .eq("activo", true)
     .maybeSingle();
 
   if (existing) {
@@ -76,21 +90,19 @@ export async function updateProduct(id: string, data: ProductFormValues) {
     .eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/productos");
+  revalidatePath("/cermadsa/laarada/productos");
   return { success: true };
 }
 
 export async function deleteProduct(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("inv_productos")
-    .update({ activo: false })
-    .eq("id", id);
+  const { error } = await supabase.from("inv_productos").delete().eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/productos");
+  revalidatePath("/cermadsa/laarada/productos");
   return { success: true };
 }
+
 export async function getNextProductCode() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -100,10 +112,11 @@ export async function getNextProductCode() {
     .limit(1)
     .maybeSingle();
 
-  if (error) return "001";
-  if (!data) return "001";
+  if (error || !data) return "001";
 
   const lastCode = parseInt(data.codigo, 10);
+  if (isNaN(lastCode)) return "001";
+
   const nextCode = lastCode + 1;
   return nextCode.toString().padStart(3, "0");
 }

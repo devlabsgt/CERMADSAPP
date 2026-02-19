@@ -6,7 +6,11 @@ export const ProductSchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
   medida: z.string().min(1, "La medida es requerida"),
   precio_base: z.coerce.number().min(0.01, "El precio debe ser mayor a 0"),
-  activo: z.boolean().optional(),
+  stock_actual: z.coerce.number().default(0),
+  stock_minimo: z.coerce
+    .number()
+    .min(0, "El mínimo no puede ser negativo")
+    .default(10),
 });
 
 export type ProductFormValues = z.infer<typeof ProductSchema>;

@@ -19,7 +19,7 @@ export function VerUsuarios() {
   const user = useUser();
   const userRole = user?.user_metadata?.rol || "user";
 
-  const { data: users, isLoading, isError } = useUsers(userRole);
+  const { data: users, isLoading, isError, refetch } = useUsers(userRole);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -33,6 +33,11 @@ export function VerUsuarios() {
   const handleUserClick = (id: string) => {
     setSelectedUserId(id);
     setIsProfileOpen(true);
+  };
+
+  const handleCloseSignUp = () => {
+    setIsSignUpOpen(false);
+    refetch();
   };
 
   const availableRoles = useMemo(() => {
@@ -279,7 +284,7 @@ export function VerUsuarios() {
         userId={selectedUserId}
       />
 
-      <SignUp isOpen={isSignUpOpen} onClose={() => setIsSignUpOpen(false)} />
+      <SignUp isOpen={isSignUpOpen} onClose={handleCloseSignUp} />
     </>
   );
 }
