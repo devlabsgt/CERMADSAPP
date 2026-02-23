@@ -91,7 +91,7 @@ export default function ListadoClientes() {
           <select
             value={itemsPerPage}
             onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            className="bg-background border rounded-lg px-2 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer h-[38px] w-20 text-center"
+            className="bg-background border rounded-lg px-2 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer h-9.5 w-20 text-center"
           >
             <option value={5}>5</option>
             <option value={10}>10</option>

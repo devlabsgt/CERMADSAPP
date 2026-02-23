@@ -120,3 +120,62 @@ export async function getNextProductCode() {
   const nextCode = lastCode + 1;
   return nextCode.toString().padStart(3, "0");
 }
+
+export async function getStockStats() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("inv_productos")
+    .select("stock_actual, stock_minimo");
+
+  if (error) return { sinStock: 0, stockBajo: 0 };
+
+  let sinStock = 0;
+  let stockBajo = 0;
+
+  data.forEach((prod) => {
+    if (prod.stock_actual <= 0) {
+      sinStock++;
+    } else if (prod.stock_actual <= prod.stock_minimo) {
+      stockBajo++;
+    }
+  });
+
+  return { sinStock, stockBajo };
+}
+
+export async function getProductStats(productId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ven_detalle")
+    .select(
+      `
+      cantidad,
+      ven_ventas!inner (
+        fecha_entrega,
+        estado
+      )
+    `,
+    )
+    .eq("producto_id", productId)
+    .eq("ven_ventas.estado", "Entregado");
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getAllProductsStats() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ven_detalle")
+    .select(`
+      producto_id,
+      cantidad,
+      inv_productos (nombre),
+      ven_ventas!inner (fecha_entrega, estado)
+    `)
+    .eq("ven_ventas.estado", "Entregado");
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+

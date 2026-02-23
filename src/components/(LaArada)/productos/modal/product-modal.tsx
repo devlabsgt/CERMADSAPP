@@ -43,7 +43,7 @@ export default function ProductModal({
     defaultValues: {
       codigo: "",
       nombre: "",
-      medida: "Metro Cúbico",
+      medida: "m³",
       precio_base: 90,
       stock_actual: 0,
       stock_minimo: 10,
@@ -59,7 +59,7 @@ export default function ProductModal({
         reset({
           codigo: "",
           nombre: "",
-          medida: "Metro Cúbico",
+          medida: "m³",
           precio_base: 90,
           stock_actual: 0,
           stock_minimo: 10,
@@ -70,7 +70,6 @@ export default function ProductModal({
     };
     prepareModal();
   }, [productToEdit, reset, isOpen, setValue]);
-
   const handleDelete = () => {
     const isDark = theme === "dark";
     Swal.fire({

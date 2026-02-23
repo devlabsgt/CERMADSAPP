@@ -7,27 +7,39 @@ import Script from "next/script";
 import Image from "next/image";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { cn } from "@/lib/utils";
-import { getLowStockCount } from "./productos/lib/actions";
+import { getStockStats } from "./productos/lib/actions";
+import { getPendingOrdersCount } from "./pedidos/lib/actions";
 
 export default function DashboardLaArada() {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [lowStockCount, setLowStockCount] = useState(0);
+  const [stats, setStats] = useState({
+    pendientes: 0,
+    sinStock: 0,
+    stockBajo: 0,
+  });
 
   useEffect(() => {
-    const fetchStock = async () => {
-      const count = await getLowStockCount();
-      setLowStockCount(count);
+    const fetchStats = async () => {
+      const [pendientes, stock] = await Promise.all([
+        getPendingOrdersCount(),
+        getStockStats(),
+      ]);
+      setStats({
+        pendientes: pendientes || 0,
+        sinStock: stock?.sinStock || 0,
+        stockBajo: stock?.stockBajo || 0,
+      });
     };
-    fetchStock();
+    fetchStats();
   }, []);
 
   const menuItems = [
     {
       id: "pedidos",
       href: "/cermadsa/laarada/pedidos",
-      label: "Pedidos",
-      iconKey: "pmawqxvu",
+      label: "Ventas y pedidos",
+      iconKey: "falgkefu",
       desc: "Gestión de órdenes y despachos.",
       color:
         "border-orange-500/20 bg-orange-500/5 dark:bg-[#121212] dark:border-orange-500/40",
@@ -57,7 +69,7 @@ export default function DashboardLaArada() {
       id: "productos",
       href: "/cermadsa/laarada/productos",
       label: "Productos",
-      iconKey: "pkyxcgiq",
+      iconKey: "itixlgjo",
       desc: "Inventario.",
       color:
         "border-amber-500/20 bg-amber-500/5 dark:bg-[#121212] dark:border-amber-500/40",
@@ -77,7 +89,7 @@ export default function DashboardLaArada() {
       id: "historiales",
       href: "/cermadsa/laarada/estadisticas",
       label: "Estadísticas",
-      iconKey: "xowcggal",
+      iconKey: "cnbqxixv",
       desc: "Auditoría de movimientos y reportes detallados.",
       color:
         "border-purple-500/20 bg-purple-500/5 dark:bg-[#121212] dark:border-purple-500/40",
@@ -147,18 +159,42 @@ export default function DashboardLaArada() {
                 item.className,
               )}
             >
-              {item.id === "productos" && lowStockCount > 0 && (
-                <div className="absolute top-3 right-3 md:top-5 md:right-5 flex items-center justify-center size-5 md:size-7 bg-red-500 text-white text-[10px] md:text-xs font-bold rounded-full shadow-lg z-20 animate-pulse ring-2 ring-white dark:ring-black">
-                  {lowStockCount}
+              {item.id === "pedidos" && stats.pendientes > 0 && (
+                <div className="absolute top-3 right-3 md:top-5 md:right-5 flex items-center bg-amber-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md z-20 animate-pulse ring-2 ring-white dark:ring-black">
+                  Pendientes de entrega: {stats.pendientes}
                 </div>
               )}
 
+              {item.id === "productos" &&
+                (stats.sinStock > 0 || stats.stockBajo > 0) && (
+                  <div className="absolute top-3 right-3 md:top-5 md:right-5 flex flex-col gap-1.5 z-20 items-end">
+                    {stats.sinStock > 0 && (
+                      <div className="flex items-center bg-red-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md animate-pulse ring-2 ring-white dark:ring-black">
+                        Sin stock: {stats.sinStock}
+                      </div>
+                    )}
+                    {stats.stockBajo > 0 && (
+                      <div className="flex items-center bg-orange-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md ring-2 ring-white dark:ring-black">
+                        Stock bajo: {stats.stockBajo}
+                      </div>
+                    )}
+                  </div>
+                )}
+
               <div className="relative z-10 shrink-0">
-                <div className="p-2 md:p-3 bg-white rounded-xl md:rounded-2xl border border-border/50 shadow-sm">
+                <div
+                  className={cn(
+                    "p-2 md:p-3 bg-white rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
+                    item.id === "pedidos" && "md:p-5",
+                  )}
+                >
                   <AnimatedIcon
                     iconKey={item.iconKey}
                     target={`#card-${item.id}`}
-                    className="w-8 h-8 md:w-12 md:h-12"
+                    className={cn(
+                      "w-8 h-8 md:w-12 md:h-12",
+                      item.id === "pedidos" && "md:w-24 md:h-24",
+                    )}
                   />
                 </div>
               </div>
