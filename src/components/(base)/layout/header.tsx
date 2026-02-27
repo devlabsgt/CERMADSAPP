@@ -30,6 +30,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { AuroraText } from "@/components/ui/aurora-text";
+import AnimatedIcon from "@/components/ui/AnimatedIcon"; // <- Agregado
 
 export default function Header() {
   const user = useUser();
@@ -133,14 +134,28 @@ export default function Header() {
 
           <div className="flex items-center gap-3">
             <AnimatedThemeToggler />
+
+            {/* Botón de recarga (F5) añadido */}
             <button
-              onClick={() => setIsOpen(!isOpen)}
+              id="refresh-btn"
+              onClick={() => window.location.reload()}
               className="flex items-center justify-center rounded-xl p-2.5 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer"
             >
+              <AnimatedIcon
+                iconKey="diemywzy"
+                target="#refresh-btn"
+                className="size-6 md:size-10"
+              />
+            </button>
+
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex items-center justify-center rounded-xl p-2.5 md:p-3 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer transition-all active:scale-95"
+            >
               {isOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6 md:h-8 md:w-8" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-6 w-6 md:h-8 md:w-8" />
               )}
             </button>
           </div>
@@ -284,7 +299,7 @@ export default function Header() {
                 className="text-center space-y-1 pt-4"
               >
                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-                  © 2025 CERMADSAPP
+                  © 2026 CERMADSAPP
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-widest">
                   Powered by{" "}

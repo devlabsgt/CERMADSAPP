@@ -1,148 +1,71 @@
-import { useState, useEffect } from "react";
-import { X, Save, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { X } from "lucide-react";
 import { updateEstadoVenta } from "../lib/actions";
 import { MagicCard } from "@/components/ui/magic-card";
+import Swal from "sweetalert2";
 
 export default function StatusModal({ isOpen, onClose, venta }: any) {
-  const [estado, setEstado] = useState("Entregado");
-  const [observaciones, setObservaciones] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (venta) {
-      setEstado(venta.estado === "Pendiente" ? "Entregado" : venta.estado);
-      setObservaciones(venta.observaciones || "");
-    }
-  }, [venta]);
 
   if (!isOpen || !venta) return null;
 
-  const esAnulado = estado === "Anulado";
-  const comentarioValido = observaciones.trim().length >= 10;
-
-  // El botón se deshabilita si está cargando o si es anulado y el comentario es muy corto
-  const botonDeshabilitado = loading || (esAnulado && !comentarioValido);
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    if (esAnulado && !comentarioValido) return;
-
+  const handleDeliver = async () => {
     setLoading(true);
-    const res = await updateEstadoVenta(venta.id, estado, observaciones);
-    setLoading(false);
+    const res = await updateEstadoVenta(venta.id, "Entregado", "");
+
     if (res?.success) {
+      onClose();
+
+      await Swal.fire({
+        toast: true,
+        position: "top",
+        icon: "success",
+        title: "Producto entregado correctamente",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
       window.location.reload();
     }
+    setLoading(false);
   };
 
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <MagicCard className="w-full max-w-md p-6 shadow-2xl rounded-xl relative animate-in zoom-in-95 duration-200">
+      <MagicCard className="w-full max-w-2xl p-8 shadow-2xl rounded-2xl relative animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-foreground">
-            Actualizar Estado
+          <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">
+            Marcar como entregado
           </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-full transition-colors cursor-pointer text-muted-foreground"
           >
-            <X className="size-5" />
+            <X className="size-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-muted-foreground uppercase">
-              Seleccione el nuevo estado
-            </label>
-            <div className="flex gap-3">
-              {[
-                {
-                  valor: "Entregado",
-                  clasesActivas:
-                    "border-green-500 bg-green-500/10 text-green-600 dark:text-green-400",
-                },
-                {
-                  valor: "Anulado",
-                  clasesActivas:
-                    "border-red-500 bg-red-500/10 text-red-600 dark:text-red-400",
-                },
-              ].map(({ valor, clasesActivas }) => (
-                <label
-                  key={valor}
-                  className={`flex flex-1 flex-col items-center justify-center gap-2 p-6 border-2 rounded-xl cursor-pointer transition-all h-28 ${
-                    estado === valor
-                      ? clasesActivas
-                      : "bg-background text-muted-foreground border-border hover:bg-muted"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="estado"
-                    value={valor}
-                    checked={estado === valor}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setEstado(e.target.value)
-                    }
-                    className="sr-only"
-                  />
-                  <span className="font-black text-lg uppercase tracking-wide">
-                    {valor}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
+        <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            onClick={handleDeliver}
+            disabled={loading}
+            className="w-full h-75 md:h-100 flex flex-col items-center justify-center gap-2 p-8 border-4 rounded-3xl cursor-pointer transition-all border-green-500 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_-10px_rgba(34,197,94,0.3)]"
+          >
+            <span className="font-black text-4xl md:text-5xl uppercase tracking-tighter text-center">
+              {loading ? "..." : "Entregado"}
+            </span>
+          </button>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-bold text-muted-foreground uppercase">
-                Observaciones{" "}
-                {esAnulado && <span className="text-red-500">*</span>}
-              </label>
-              {esAnulado && (
-                <span
-                  className={`text-[10px] font-bold flex items-center gap-1 ${comentarioValido ? "text-green-500" : "text-red-500 animate-pulse"}`}
-                >
-                  <AlertCircle className="size-3" />
-                  {comentarioValido ? "MOTIVO VÁLIDO" : "MÍNIMO 10 CARACTERES"}
-                </span>
-              )}
-            </div>
-            <textarea
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              placeholder={
-                esAnulado
-                  ? "Describa detalladamente el motivo de la anulación..."
-                  : "Notas adicionales del pedido..."
-              }
-              className={`w-full min-h-24 p-4 bg-background border-2 rounded-xl outline-none transition-all focus:ring-2 focus:ring-primary/20 resize-none text-base text-foreground ${
-                esAnulado && !comentarioValido
-                  ? "border-red-500/50 bg-red-500/5"
-                  : "border-border"
-              }`}
-            />
-          </div>
-
-          <div className="flex flex-col gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={botonDeshabilitado}
-              className="flex items-center justify-center gap-2 bg-primary text-primary-foreground h-12 rounded-xl font-black uppercase tracking-widest hover:opacity-90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
-            >
-              <Save className="size-5" />
-              {loading ? "Procesando..." : "Confirmar Cambio"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-12 rounded-xl font-bold hover:bg-muted transition-colors cursor-pointer text-muted-foreground border-2"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="w-full py-4 border-2 rounded-xl cursor-pointer transition-all bg-background text-muted-foreground border-border hover:bg-muted/50 disabled:opacity-50 font-black text-xl md:text-2xl uppercase tracking-widest"
+          >
+            Volver
+          </button>
+        </div>
       </MagicCard>
     </div>
   );

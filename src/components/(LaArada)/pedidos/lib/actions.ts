@@ -27,7 +27,7 @@ export async function getVentas() {
     .select(
       `
       *,
-      ven_clientes (nombre),
+      ven_clientes (nombre, nit),
       ven_detalle (
         id,
         producto_id,
@@ -43,8 +43,6 @@ export async function getVentas() {
   if (error) throw new Error(error.message);
   return data;
 }
-// actions.ts
-
 export async function createVenta(data: VentaFormValues) {
   const result = VentaSchema.safeParse(data);
   if (!result.success) return { error: "Datos inválidos" };
@@ -63,6 +61,7 @@ export async function createVenta(data: VentaFormValues) {
     .insert({
       cliente_id: cabecera.cliente_id,
       tipo_venta: cabecera.tipo_venta,
+      tipo_comprobante: cabecera.tipo_comprobante,
       total: cabecera.total,
       fecha_entrega: cabecera.fecha_entrega || new Date().toISOString(),
       placa_camion: cabecera.placa_camion,
@@ -85,17 +84,13 @@ export async function createVenta(data: VentaFormValues) {
     subtotal: d.subtotal,
   }));
 
-  // 3. Insertar Detalles
   const { error: errDetalle } = await supabase
     .from("ven_detalle")
     .insert(detallesFinal);
 
   if (errDetalle) return { error: "Error al guardar productos" };
 
-  // --- NUEVA LÓGICA: ACTUALIZACIÓN DE STOCK ---
-  // 4. Descontar stock para cada producto
   for (const item of detalles) {
-    // Obtenemos el stock actual primero
     const { data: prodData } = await supabase
       .from("inv_productos")
       .select("stock_actual")
@@ -116,11 +111,11 @@ export async function createVenta(data: VentaFormValues) {
         );
     }
   }
-  // --------------------------------------------
 
   revalidatePath("/cermadsa/laarada/pedidos");
   return { success: true };
 }
+
 export async function updateVenta(id: string, data: VentaFormValues) {
   const result = VentaSchema.safeParse(data);
   if (!result.success) return { error: "Datos inválidos" };
@@ -133,6 +128,7 @@ export async function updateVenta(id: string, data: VentaFormValues) {
     .update({
       cliente_id: cabecera.cliente_id,
       tipo_venta: cabecera.tipo_venta,
+      tipo_comprobante: cabecera.tipo_comprobante,
       placa_camion: cabecera.placa_camion,
       descripcion_camion: cabecera.descripcion_camion,
       observaciones: cabecera.observaciones,

@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Moon, Sun } from "lucide-react";
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
+import AnimatedIcon from "@/components/ui/AnimatedIcon";
 
 interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"button"> {
   duration?: number;
@@ -82,29 +82,19 @@ export const AnimatedThemeToggler = ({
 
   return (
     <button
+      id="theme-toggler-btn"
       ref={buttonRef}
       onClick={toggleTheme}
       className={cn(
-        "flex items-center justify-center gap-4 px-5 py-3 rounded-full border bg-background transition-all hover:bg-muted/40 active:scale-95",
+        "flex items-center justify-center rounded-xl p-2.5 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer transition-all active:scale-95",
         className,
       )}
       {...props}
     >
-      <Sun
-        className={cn(
-          "size-5 transition-all",
-          !isDark
-            ? "text-yellow-500 fill-yellow-500 scale-110"
-            : "text-muted-foreground opacity-50 scale-100",
-        )}
-      />
-      <Moon
-        className={cn(
-          "size-5 transition-all",
-          isDark
-            ? "text-yellow-100 fill-yellow-100 scale-110"
-            : "text-muted-foreground opacity-50 scale-100",
-        )}
+      <AnimatedIcon
+        iconKey="glypeims"
+        target="#theme-toggler-btn"
+        className="size-6 md:size-10"
       />
     </button>
   );

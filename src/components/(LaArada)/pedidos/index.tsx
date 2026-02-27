@@ -5,20 +5,22 @@ import {
   Plus,
   Search,
   ShoppingCart,
-  ChevronLeft,
-  ChevronRight,
   LayoutGrid,
   List,
   Truck,
   ShieldAlert,
+  BarChart3,
 } from "lucide-react";
 import { useVentas } from "./lib/hooks";
 import SaleModal from "./modal/sale-modal";
 import ReceiptModal from "./modal/receipt-modal";
 import StatusModal from "./modal/status-modal";
-import ListView from "./list-view";
-import MonitorView from "./monitor-view";
+import ListView from "./components/list-view";
+import MonitorView from "./components/monitor-view";
+import Stats from "./components/stats";
+import ContabilidadView from "./components/contabilidad-view";
 import { useUser } from "@/components/(base)/providers/UserProvider";
+import { Calculator } from "lucide-react";
 
 export default function ListadoPedidos() {
   const { data: ventas = [], isLoading } = useVentas();
@@ -34,14 +36,15 @@ export default function ListadoPedidos() {
   const allowedRoles = ["ventas", "rrhh", "admin", "super"];
   const canManage = allowedRoles.includes(effectiveRole);
 
-  const [viewMode, setViewMode] = useState<"list" | "monitor">("monitor");
+  // El modo por defecto es "list" para admins, "monitor" para usuarios normales
+  const [viewMode, setViewMode] = useState<
+    "list" | "monitor" | "stats" | "contabilidad"
+  >("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
   const [statusVenta, setStatusVenta] = useState<any>(null);
   const [ventaToEdit, setVentaToEdit] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     if (user && !canManage) {
@@ -60,19 +63,9 @@ export default function ListadoPedidos() {
 
   const sortedOrders = [...filteredSearchVentas].sort(
     (a: any, b: any) =>
-      new Date(a.fecha_entrega || 0).getTime() -
-      new Date(b.fecha_entrega || 0).getTime(),
+      new Date(b.fecha_entrega || 0).getTime() -
+      new Date(a.fecha_entrega || 0).getTime(),
   );
-
-  const totalItems = sortedOrders.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = sortedOrders.slice(indexOfFirstItem, indexOfLastItem);
-
-  const handlePageChange = (p: number) => {
-    if (p >= 1 && p <= totalPages) setCurrentPage(p);
-  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "S/F";
@@ -94,15 +87,29 @@ export default function ListadoPedidos() {
           <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
             {viewMode === "list" ? (
               <ShoppingCart className="size-5 md:size-6 text-orange-500" />
-            ) : (
+            ) : viewMode === "monitor" ? (
               <Truck className="size-5 md:size-6 text-blue-500" />
+            ) : viewMode === "stats" ? (
+              <BarChart3 className="size-5 md:size-6 text-purple-500" />
+            ) : (
+              <Calculator className="size-5 md:size-6 text-emerald-500" />
             )}
-            {viewMode === "list" ? "Control de Pedidos" : "Monitor de Despacho"}
+            {viewMode === "list"
+              ? "Control de Pedidos"
+              : viewMode === "monitor"
+                ? "Monitor de Despacho"
+                : viewMode === "stats"
+                  ? "Estadísticas de Ventas"
+                  : "Módulo Contable"}
           </h1>
           <p className="text-muted-foreground text-xs md:text-sm flex items-center gap-2">
             {viewMode === "list"
               ? "Gestión de ventas y despachos."
-              : "Pedidos pendientes de entrega en tiempo real."}
+              : viewMode === "monitor"
+                ? "Pedidos pendientes de entrega en tiempo real."
+                : viewMode === "stats"
+                  ? "Resumen general de ventas por día y mes."
+                  : "Exportación y cálculo de impuestos (IVA/ISR)."}
             {realRole === "super" && effectiveRole !== "super" && (
               <span className="text-[10px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded border border-red-500/20 whitespace-nowrap">
                 (Simulando: {effectiveRole})
@@ -134,10 +141,10 @@ export default function ListadoPedidos() {
 
           {canManage && (
             <>
-              <div className="flex bg-muted rounded-lg p-1 border h-10 w-full sm:w-auto">
+              <div className="flex bg-muted rounded-lg p-1 border h-10 w-full sm:w-auto overflow-x-auto hide-scrollbar">
                 <button
                   onClick={() => setViewMode("monitor")}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     viewMode === "monitor"
                       ? "bg-background shadow-sm text-blue-500"
                       : "text-muted-foreground hover:text-foreground"
@@ -147,13 +154,33 @@ export default function ListadoPedidos() {
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     viewMode === "list"
                       ? "bg-background shadow-sm text-orange-500"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <List className="size-4" /> Lista
+                </button>
+                <button
+                  onClick={() => setViewMode("stats")}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    viewMode === "stats"
+                      ? "bg-background shadow-sm text-purple-500"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <BarChart3 className="size-4" /> Estadísticas
+                </button>
+                <button
+                  onClick={() => setViewMode("contabilidad")}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    viewMode === "contabilidad"
+                      ? "bg-background shadow-sm text-emerald-500"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Calculator className="size-4" /> Contabilidad
                 </button>
               </div>
 
@@ -172,59 +199,21 @@ export default function ListadoPedidos() {
         </div>
       </div>
 
-      {viewMode === "list" && canManage ? (
+      {viewMode === "list" && canManage && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 w-full">
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
-              <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full sm:w-64 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-9.5">
-                <Search className="size-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Buscar pedido o recibo..."
-                  className="bg-transparent outline-none text-xs md:text-sm w-full"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-background border rounded-lg px-2 py-2 text-xs md:text-sm outline-none cursor-pointer h-9.5 w-20 text-center"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={100}>Todos</option>
-              </select>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-2 border rounded-md hover:bg-muted disabled:opacity-50 cursor-pointer"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="p-2 border rounded-md hover:bg-muted disabled:opacity-50 cursor-pointer"
-                >
-                  <ChevronRight className="size-4" />
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full sm:w-64 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-9.5">
+            <Search className="size-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar pedido o recibo..."
+              className="bg-transparent outline-none text-xs md:text-sm w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <ListView
-            items={currentItems}
+            items={sortedOrders}
             isLoading={isLoading}
             formatDate={formatDate}
             onStatusClick={setStatusVenta}
@@ -235,7 +224,9 @@ export default function ListadoPedidos() {
             }}
           />
         </div>
-      ) : (
+      )}
+
+      {viewMode === "monitor" && (
         <MonitorView
           orders={sortedOrders}
           formatDate={formatDate}
@@ -243,11 +234,17 @@ export default function ListadoPedidos() {
         />
       )}
 
+      {viewMode === "stats" && canManage && <Stats orders={sortedOrders} />}
+
+      {viewMode === "contabilidad" && canManage && (
+        <ContabilidadView orders={sortedOrders} />
+      )}
       {canManage && (
         <SaleModal
           isOpen={isSaleModalOpen}
           onClose={() => setIsSaleModalOpen(false)}
           ventaToEdit={ventaToEdit}
+          effectiveRole={effectiveRole}
         />
       )}
 

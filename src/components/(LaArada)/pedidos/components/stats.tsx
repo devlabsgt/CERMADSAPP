@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import {
   TrendingUp,
-  Package,
   ArrowUp,
   ArrowDown,
   BarChart3,
@@ -12,6 +11,7 @@ import {
   AlertCircle,
   Activity,
   Layers,
+  Banknote,
 } from "lucide-react";
 import {
   AreaChart,
@@ -24,8 +24,6 @@ import {
   ReferenceLine,
   Label,
 } from "recharts";
-import { getProductStats } from "../lib/actions";
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 const MONTHS = [
@@ -43,7 +41,7 @@ const MONTHS = [
   "Diciembre",
 ];
 
-export default function StatsAccordion({ product }: { product: any }) {
+export default function Stats({ orders }: { orders: any[] }) {
   const currentMonthIdx = new Date().getMonth();
   const currentYearVal = new Date().getFullYear();
 
@@ -55,25 +53,27 @@ export default function StatsAccordion({ product }: { product: any }) {
     return new Date(selectedYear, selectedMonth + 1, 0).getDate();
   }, [selectedMonth, selectedYear]);
 
-  const { data: rawData, isLoading } = useQuery({
-    queryKey: ["product-stats", product?.id],
-    queryFn: () => getProductStats(product.id),
-    enabled: !!product,
-  });
+  const validOrders = useMemo(() => {
+    return (orders || []).filter(
+      (o) => String(o.estado).toLowerCase().trim() !== "anulado",
+    );
+  }, [orders]);
 
   const availableYears = useMemo(() => {
-    if (!rawData) return [currentYearVal];
+    if (validOrders.length === 0) return [currentYearVal];
     const years = new Set<number>([currentYearVal]);
-    rawData.forEach((item: any) => {
-      let d = item.ven_ventas.fecha_entrega;
-      if (typeof d === "string" && d.length === 10) d += "T12:00:00";
-      years.add(new Date(d).getFullYear());
+    validOrders.forEach((item: any) => {
+      let d = item.fecha_entrega || item.created_at;
+      if (d) {
+        if (typeof d === "string" && d.length === 10) d += "T12:00:00";
+        years.add(new Date(d).getFullYear());
+      }
     });
     return Array.from(years).sort((a, b) => b - a);
-  }, [rawData, currentYearVal]);
+  }, [validOrders, currentYearVal]);
 
   const chartInfo = useMemo(() => {
-    if (!rawData)
+    if (validOrders.length === 0)
       return {
         data: [],
         max: 0,
@@ -89,19 +89,21 @@ export default function StatsAccordion({ product }: { product: any }) {
       dayMap[i] = 0;
     }
 
-    rawData.forEach((item: any) => {
-      let dateString = item.ven_ventas.fecha_entrega;
-      if (typeof dateString === "string" && dateString.length === 10) {
-        dateString = `${dateString}T12:00:00`;
-      }
+    validOrders.forEach((item: any) => {
+      let dateString = item.fecha_entrega || item.created_at;
+      if (dateString) {
+        if (typeof dateString === "string" && dateString.length === 10) {
+          dateString = `${dateString}T12:00:00`;
+        }
 
-      const date = new Date(dateString);
-      if (
-        date.getMonth() === selectedMonth &&
-        date.getFullYear() === selectedYear
-      ) {
-        const day = date.getDate();
-        dayMap[day] += Number(item.cantidad);
+        const date = new Date(dateString);
+        if (
+          date.getMonth() === selectedMonth &&
+          date.getFullYear() === selectedYear
+        ) {
+          const day = date.getDate();
+          dayMap[day] += Number(item.total || 0);
+        }
       }
     });
 
@@ -132,13 +134,14 @@ export default function StatsAccordion({ product }: { product: any }) {
     const minDayLabel = minEntry ? formatDay(minEntry.name) : "N/A";
 
     return { data, max, min, avg, total, maxDayLabel, minDayLabel };
-  }, [rawData, daysInMonth, selectedMonth, selectedYear]);
+  }, [validOrders, daysInMonth, selectedMonth, selectedYear]);
 
   const yearlyInfo = useMemo(() => {
-    if (!rawData) return null;
+    if (validOrders.length === 0) return null;
 
-    const yearData = rawData.filter((item: any) => {
-      let d = item.ven_ventas.fecha_entrega;
+    const yearData = validOrders.filter((item: any) => {
+      let d = item.fecha_entrega || item.created_at;
+      if (!d) return false;
       if (typeof d === "string" && d.length === 10) d += "T12:00:00";
       return new Date(d).getFullYear() === selectedYear;
     });
@@ -149,15 +152,15 @@ export default function StatsAccordion({ product }: { product: any }) {
     }));
 
     yearData.forEach((item: any) => {
-      let d = item.ven_ventas.fecha_entrega;
+      let d = item.fecha_entrega || item.created_at;
       if (typeof d === "string" && d.length === 10) d += "T12:00:00";
       const date = new Date(d);
       const m = date.getMonth();
       const day = date.getDate();
-      const qty = Number(item.cantidad);
+      const amount = Number(item.total || 0);
 
-      monthsData[m].total += qty;
-      monthsData[m].days[day] = (monthsData[m].days[day] || 0) + qty;
+      monthsData[m].total += amount;
+      monthsData[m].days[day] = (monthsData[m].days[day] || 0) + amount;
     });
 
     const processedMonths = monthsData.map((m, index) => {
@@ -167,9 +170,10 @@ export default function StatsAccordion({ product }: { product: any }) {
         fullDailyValues.push(m.days[i] || 0);
       }
 
-      const max = fullDailyValues.length > 0 ? Math.max(...fullDailyValues) : 0;
-      const min = fullDailyValues.length > 0 ? Math.min(...fullDailyValues) : 0;
-      const avg = m.total / daysInM;
+      const dailyValues = fullDailyValues.filter((v) => v > 0);
+      const max = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
+      const min = dailyValues.length > 0 ? Math.min(...dailyValues) : 0;
+      const avg = daysInM > 0 ? m.total / daysInM : 0;
 
       const isValid =
         selectedYear < currentYearVal ||
@@ -200,7 +204,7 @@ export default function StatsAccordion({ product }: { product: any }) {
     );
 
     const totalYear = yearData.reduce(
-      (acc, curr) => acc + Number(curr.cantidad),
+      (acc, curr) => acc + Number(curr.total || 0),
       0,
     );
     const divisor = selectedYear === currentYearVal ? currentMonthIdx + 1 : 12;
@@ -224,9 +228,7 @@ export default function StatsAccordion({ product }: { product: any }) {
       maxMonthlyTotal,
       minMonthlyTotal,
     };
-  }, [rawData, selectedYear, currentYearVal, currentMonthIdx]);
-
-  if (!product) return null;
+  }, [validOrders, selectedYear, currentYearVal, currentMonthIdx]);
 
   const isAnual = viewMode === "anual";
   const currentGraphData = isAnual
@@ -236,14 +238,15 @@ export default function StatsAccordion({ product }: { product: any }) {
   const currentMin = isAnual ? yearlyInfo?.minMonthlyTotal || 0 : chartInfo.min;
   const currentAvg = isAnual ? yearlyInfo?.avgYear || 0 : chartInfo.avg;
 
+  const formatMoney = (val: number) => `Q${val.toFixed(2)}`;
+
   return (
-    <div className="w-full p-4 md:p-6 flex flex-col gap-4 md:gap-6 relative overflow-hidden text-foreground">
-      {/* CABECERA & FILTROS (Sin botón de cerrar) */}
+    <div className="w-full p-4 md:p-6 flex flex-col gap-4 md:gap-6 relative overflow-hidden text-foreground animate-in fade-in duration-300">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center shrink-0 gap-4">
         <div className="space-y-1 w-full lg:w-auto">
-          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold uppercase text-xs md:text-sm tracking-widest">
+          <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold uppercase text-xs md:text-sm tracking-widest">
             <TrendingUp className="size-4 shrink-0" />
-            <span>Desempeño Estadístico</span>
+            <span>Ingresos y Ventas</span>
           </div>
         </div>
 
@@ -254,7 +257,7 @@ export default function StatsAccordion({ product }: { product: any }) {
               className={cn(
                 "px-4 py-2 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2",
                 !isAnual
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground hover:bg-muted/50",
               )}
             >
@@ -265,7 +268,7 @@ export default function StatsAccordion({ product }: { product: any }) {
               className={cn(
                 "px-4 py-2 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2",
                 isAnual
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground hover:bg-muted/50",
               )}
             >
@@ -302,17 +305,17 @@ export default function StatsAccordion({ product }: { product: any }) {
         </div>
       </div>
 
-      {/* TARJETAS DINÁMICAS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         <StatCard
           label={
             isAnual
-              ? `Total Año ${selectedYear}`
-              : `Total ${MONTHS[selectedMonth]}`
+              ? `Ingresos Año ${selectedYear}`
+              : `Ingresos ${MONTHS[selectedMonth]}`
           }
-          value={isAnual ? yearlyInfo?.totalYear || 0 : chartInfo.total}
-          unit={product.medida}
-          icon={<Package className="size-4" />}
+          value={formatMoney(
+            isAnual ? yearlyInfo?.totalYear || 0 : chartInfo.total,
+          )}
+          icon={<Banknote className="size-4" />}
           color="text-foreground"
         />
         <StatCard
@@ -321,8 +324,7 @@ export default function StatsAccordion({ product }: { product: any }) {
               ? `Mes Máx. (${yearlyInfo?.highestMonth?.name || "N/A"})`
               : `Día Máx. (${chartInfo.maxDayLabel})`
           }
-          value={currentMax}
-          unit={product.medida}
+          value={formatMoney(currentMax)}
           icon={<ArrowUp className="size-4 text-emerald-500" />}
           color="text-emerald-500"
         />
@@ -332,49 +334,44 @@ export default function StatsAccordion({ product }: { product: any }) {
               ? `Mes Mín. (${yearlyInfo?.lowestMonth?.name || "N/A"})`
               : `Día Mín. (${chartInfo.minDayLabel})`
           }
-          value={currentMin}
-          unit={product.medida}
+          value={formatMoney(currentMin)}
           icon={<ArrowDown className="size-4 text-red-500" />}
           color="text-red-500"
         />
         <StatCard
           label={isAnual ? "Promedio Mensual" : "Promedio Diario"}
-          value={currentAvg.toFixed(1)}
-          unit={product.medida}
-          icon={<BarChart3 className="size-4 text-blue-500" />}
-          color="text-blue-500"
+          value={formatMoney(currentAvg)}
+          icon={<BarChart3 className="size-4 text-purple-500" />}
+          color="text-purple-500"
         />
       </div>
 
-      {/* TARJETAS DE DETALLE ANUAL (Solo en vista mensual) */}
       {!isAnual && yearlyInfo && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
           <div className="bg-background border border-border/60 p-4 rounded-2xl flex flex-col gap-1 shadow-sm">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-80">
-              <Activity className="size-4 text-primary" /> Promedio Anual
+              <Activity className="size-4 text-purple-600" /> Promedio Anual
               (Mensual)
             </div>
-            <div className="text-2xl font-black tracking-tighter text-primary">
-              {yearlyInfo.avgYear.toFixed(1)}{" "}
-              <span className="text-xs text-muted-foreground">
-                {product.medida}/mes
+            <div className="text-2xl font-black tracking-tighter text-purple-600">
+              {formatMoney(yearlyInfo.avgYear)}{" "}
+              <span className="text-xs text-muted-foreground font-bold tracking-normal">
+                /mes
               </span>
             </div>
           </div>
 
           <YearlyDetailCard
-            label={`Mes Mayor Venta (${selectedYear})`}
+            label={`Mejor Mes (${selectedYear})`}
             data={yearlyInfo.highestMonth}
-            unit={product.medida}
             colorClass="text-emerald-500"
             bgClass="bg-emerald-500/5 border-emerald-500/20"
             icon={<Trophy className="size-4 text-emerald-500" />}
           />
 
           <YearlyDetailCard
-            label={`Mes Menor Venta (${selectedYear})`}
+            label={`Peor Mes (${selectedYear})`}
             data={yearlyInfo.lowestMonth}
-            unit={product.medida}
             colorClass="text-red-500"
             bgClass="bg-red-500/5 border-red-500/20"
             icon={<AlertCircle className="size-4 text-red-500" />}
@@ -382,13 +379,8 @@ export default function StatsAccordion({ product }: { product: any }) {
         </div>
       )}
 
-      {/* GRÁFICA DINÁMICA */}
-      <div className="w-full bg-background rounded-2xl p-4 md:p-6 border border-border/50 relative h-[35vh] min-h-75 shrink-0 mt-2 shadow-sm">
-        {isLoading ? (
-          <div className="h-full flex items-center justify-center italic text-muted-foreground animate-pulse font-black text-xl uppercase tracking-widest">
-            Consultando base de datos...
-          </div>
-        ) : currentGraphData.length === 0 ? (
+      <div className="w-full bg-background rounded-2xl p-4 md:p-6 border border-border/50 relative h-[45vh] min-h-75 shrink-0 mt-2 shadow-sm">
+        {currentGraphData.length === 0 ? (
           <div className="h-full flex items-center justify-center text-muted-foreground font-bold uppercase border-2 border-dashed border-border rounded-xl">
             Sin entregas registradas en este periodo
           </div>
@@ -396,18 +388,12 @@ export default function StatsAccordion({ product }: { product: any }) {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={currentGraphData}
-              margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+              margin={{ top: 20, right: 20, left: 10, bottom: 0 }}
             >
               <defs>
-                <linearGradient
-                  id={`grad-${product.id}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -428,9 +414,10 @@ export default function StatsAccordion({ product }: { product: any }) {
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: "#888", fontWeight: "900" }}
+                tickFormatter={(val) => `Q${val}`}
               />
               <Tooltip
-                cursor={{ stroke: "#2563eb", strokeWidth: 2 }}
+                cursor={{ stroke: "#9333ea", strokeWidth: 2 }}
                 contentStyle={{
                   backgroundColor: "#000",
                   border: "none",
@@ -440,6 +427,10 @@ export default function StatsAccordion({ product }: { product: any }) {
                   padding: "12px",
                   fontWeight: "bold",
                 }}
+                formatter={(value: number | undefined) => [
+                  `Q${Number(value || 0).toFixed(2)}`,
+                  "Ingresos",
+                ]}
                 labelFormatter={(value, payload) => {
                   if (isAnual) {
                     const fullName = payload?.[0]?.payload?.fullName || value;
@@ -485,14 +476,14 @@ export default function StatsAccordion({ product }: { product: any }) {
               {currentAvg > 0 && (
                 <ReferenceLine
                   y={currentAvg}
-                  stroke="#3b82f6"
+                  stroke="#9333ea"
                   strokeWidth={3}
-                  strokeOpacity={0.8}
+                  strokeOpacity={0.5}
                 >
                   <Label
-                    value={`PROM: ${currentAvg.toFixed(1)}`}
+                    value={`PROM: Q${currentAvg.toFixed(2)}`}
                     position="insideTopLeft"
-                    fill="#3b82f6"
+                    fill="#9333ea"
                     fontSize={10}
                     fontWeight="900"
                   />
@@ -501,9 +492,9 @@ export default function StatsAccordion({ product }: { product: any }) {
               <Area
                 type="monotone"
                 dataKey="total"
-                stroke="#2563eb"
+                stroke="#9333ea"
                 strokeWidth={4}
-                fill={`url(#grad-${product.id})`}
+                fill="url(#colorVentas)"
                 animationDuration={1000}
               />
             </AreaChart>
@@ -514,7 +505,7 @@ export default function StatsAccordion({ product }: { product: any }) {
   );
 }
 
-function StatCard({ label, value, unit, icon, color }: any) {
+function StatCard({ label, value, icon, color }: any) {
   return (
     <div className="bg-background border border-border/60 p-4 rounded-2xl flex flex-col justify-center gap-1 shadow-sm">
       <div className="flex items-center gap-1 text-[10px] md:text-xs font-black uppercase text-muted-foreground tracking-widest opacity-80">
@@ -522,27 +513,17 @@ function StatCard({ label, value, unit, icon, color }: any) {
       </div>
       <div
         className={cn(
-          "text-2xl md:text-3xl font-black tracking-tighter",
+          "text-xl md:text-2xl lg:text-3xl font-black tracking-tighter truncate",
           color,
         )}
       >
-        {value}{" "}
-        <span className="text-xs md:text-sm font-bold text-muted-foreground/50">
-          {unit}
-        </span>
+        {value}
       </div>
     </div>
   );
 }
 
-function YearlyDetailCard({
-  label,
-  data,
-  unit,
-  colorClass,
-  bgClass,
-  icon,
-}: any) {
+function YearlyDetailCard({ label, data, colorClass, bgClass, icon }: any) {
   return (
     <div
       className={cn(
@@ -564,21 +545,29 @@ function YearlyDetailCard({
             {data?.name || "N/A"}
           </div>
           <div className="text-xs font-bold text-muted-foreground mt-1">
-            TOTAL: <span className="text-foreground">{data?.total || 0}</span>{" "}
-            {unit}
+            TOTAL:{" "}
+            <span className="text-foreground">
+              Q{data?.total?.toFixed(2) || 0}
+            </span>
           </div>
         </div>
         <div className="text-right text-[10px] font-black uppercase text-muted-foreground space-y-0.5">
           <div>
-            Máx: <span className="text-foreground">{data?.max || 0}</span>
+            Máx:{" "}
+            <span className="text-foreground">
+              Q{data?.max?.toFixed(2) || 0}
+            </span>
           </div>
           <div>
-            Mín: <span className="text-foreground">{data?.min || 0}</span>
+            Mín:{" "}
+            <span className="text-foreground">
+              Q{data?.min?.toFixed(2) || 0}
+            </span>
           </div>
           <div>
             Prom:{" "}
             <span className="text-foreground">
-              {data?.avg ? data.avg.toFixed(1) : 0}
+              Q{data?.avg ? data.avg.toFixed(2) : 0}
             </span>
           </div>
         </div>

@@ -14,22 +14,27 @@ import {
   Search,
   Check,
   Package,
+  Ban,
 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import ClientModal from "../../clientes/modal/client-modal";
 import AddProductModal from "./add-product-modal";
 import { cn } from "@/lib/utils";
+import { updateEstadoVenta } from "../lib/actions";
+import Swal from "sweetalert2";
 
 interface SaleModalProps {
   isOpen: boolean;
   onClose: () => void;
   ventaToEdit?: any;
+  effectiveRole?: string;
 }
 
 export default function SaleModal({
   isOpen,
   onClose,
   ventaToEdit,
+  effectiveRole,
 }: SaleModalProps) {
   const { data: catalogos, refetch } = useCatalogos();
   const createMutation = useCreateVenta();
@@ -45,6 +50,7 @@ export default function SaleModal({
     defaultValues: {
       cliente_id: "",
       tipo_venta: "Contado",
+      tipo_comprobante: "Recibo",
       fecha_entrega: new Date().toISOString().split("T")[0],
       total: 0,
       detalles: [],
@@ -71,11 +77,21 @@ export default function SaleModal({
   const detalles = watch("detalles");
   const selectedClientId = watch("cliente_id");
 
+  const isReadOnly = useMemo(() => {
+    if (!ventaToEdit) return false;
+    if (effectiveRole === "super") return false;
+    const estado = String(ventaToEdit.estado || "Pendiente")
+      .trim()
+      .toLowerCase();
+    return estado === "entregado" || estado === "anulado";
+  }, [ventaToEdit, effectiveRole]);
+
   useEffect(() => {
     if (ventaToEdit) {
       reset({
         cliente_id: ventaToEdit.cliente_id,
         tipo_venta: ventaToEdit.tipo_venta || "Contado",
+        tipo_comprobante: ventaToEdit.tipo_comprobante || "Recibo",
         fecha_entrega: ventaToEdit.fecha_entrega
           ? new Date(ventaToEdit.fecha_entrega).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
@@ -94,6 +110,7 @@ export default function SaleModal({
       reset({
         cliente_id: "",
         tipo_venta: "Contado",
+        tipo_comprobante: "Recibo",
         fecha_entrega: new Date().toISOString().split("T")[0],
         total: 0,
         detalles: [],
@@ -131,6 +148,7 @@ export default function SaleModal({
   }, []);
 
   const onSubmit = async (data: any) => {
+    if (isReadOnly) return;
     const res = ventaToEdit
       ? await updateMutation.mutateAsync({ id: ventaToEdit.id, data })
       : await createMutation.mutateAsync(data);
@@ -141,6 +159,39 @@ export default function SaleModal({
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!ventaToEdit?.id || isReadOnly) return;
+
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: "Se cancelará el pedido y se devolverá el stock.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Sí, cancelar pedido",
+      cancelButtonText: "No, volver",
+    });
+
+    if (result.isConfirmed) {
+      const res = await updateEstadoVenta(ventaToEdit.id, "Anulado", "");
+      if (res?.success) {
+        await Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "success",
+          title: "Pedido anulado correctamente",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+        onClose();
+        window.location.reload();
+      }
+    }
+  };
+
+  const today = new Date().toISOString().split("T")[0];
+
   if (!isOpen) return null;
 
   return (
@@ -148,8 +199,15 @@ export default function SaleModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-foreground">
         <MagicCard className="w-full max-w-4xl p-0 shadow-2xl rounded-xl max-h-[90vh] flex flex-col overflow-hidden bg-background">
           <Header
-            title={ventaToEdit ? "Editar Venta" : "Nueva Venta"}
+            title={
+              ventaToEdit
+                ? isReadOnly
+                  ? "Detalle de Venta"
+                  : "Editar Venta"
+                : "Nueva Venta"
+            }
             onClose={onClose}
+            estado={ventaToEdit?.estado}
           />
 
           <div className="flex-1 overflow-y-auto p-6">
@@ -174,22 +232,26 @@ export default function SaleModal({
                       <input
                         type="text"
                         placeholder="Nit o nombre del cliente..."
+                        disabled={isReadOnly}
                         className={cn(
-                          "w-full h-10 pl-9 pr-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20",
+                          "w-full h-10 pl-9 pr-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60 disabled:cursor-not-allowed",
                           errors.cliente_id && "border-red-500",
                         )}
                         value={clientSearch}
                         onChange={(e) => {
+                          if (isReadOnly) return;
                           setClientSearch(e.target.value);
                           setShowClientList(e.target.value.length >= 3);
                           if (!e.target.value) setValue("cliente_id", "");
                         }}
                         onFocus={() =>
-                          clientSearch.length >= 3 && setShowClientList(true)
+                          !isReadOnly &&
+                          clientSearch.length >= 3 &&
+                          setShowClientList(true)
                         }
                         autoComplete="off"
                       />
-                      {showClientList && (
+                      {showClientList && !isReadOnly && (
                         <div className="absolute top-full left-0 mt-1 w-full bg-background border rounded-lg shadow-xl max-h-60 overflow-y-auto z-50">
                           {filteredClients.map((c) => (
                             <button
@@ -216,38 +278,78 @@ export default function SaleModal({
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setModals({ ...modals, client: true })}
-                      className="size-10 flex items-center justify-center bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      <Plus className="size-5" />
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        onClick={() => setModals({ ...modals, client: true })}
+                        className="size-10 flex items-center justify-center bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shrink-0"
+                      >
+                        <Plus className="size-5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <div className="md:col-span-3 space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-muted-foreground">
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">
                     Tipo Venta
                   </label>
                   <select
                     {...register("tipo_venta")}
-                    className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="Contado">Contado</option>
                     <option value="Crédito">Crédito</option>
                   </select>
                 </div>
 
-                <div className="md:col-span-3 space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-muted-foreground">
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">
+                    Documento
+                  </label>
+                  <select
+                    {...register("tipo_comprobante")}
+                    disabled={isReadOnly}
+                    className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="Recibo">Recibo</option>
+                    <option value="NIT">NIT</option>
+                    <option value="C/F">C/F</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2 space-y-1.5">
+                  <label
+                    className={cn(
+                      "text-[10px] md:text-xs font-bold uppercase truncate",
+                      errors.fecha_entrega
+                        ? "text-red-500"
+                        : "text-muted-foreground",
+                    )}
+                  >
                     Entrega
                   </label>
                   <input
                     type="date"
-                    {...register("fecha_entrega")}
-                    className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    min={today}
+                    {...register("fecha_entrega", {
+                      validate: (value) =>
+                        (value || "") >= today || "Fecha pasada",
+                    })}
+                    disabled={isReadOnly}
+                    className={cn(
+                      "w-full h-10 px-2 border rounded-lg bg-background text-sm outline-none focus:ring-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed",
+                      errors.fecha_entrega
+                        ? "border-red-500 focus:ring-red-500/20"
+                        : "border-border focus:ring-primary/20",
+                    )}
                   />
+                  {errors.fecha_entrega && (
+                    <p className="text-[10px] font-bold text-red-500 uppercase animate-in fade-in slide-in-from-top-1">
+                      No se permiten fechas pasadas
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -256,13 +358,15 @@ export default function SaleModal({
                   <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">
                     Detalle del Pedido
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => setModals({ ...modals, product: true })}
-                    className="text-xs font-bold flex items-center gap-1 text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Plus className="size-4" /> AGREGAR PRODUCTO
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() => setModals({ ...modals, product: true })}
+                      className="text-xs font-bold flex items-center gap-1 text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Plus className="size-4" /> AGREGAR PRODUCTO
+                    </button>
+                  )}
                 </div>
 
                 <div className="border rounded-xl overflow-hidden shadow-sm bg-card">
@@ -301,13 +405,15 @@ export default function SaleModal({
                             Q{watch(`detalles.${index}.subtotal`).toFixed(2)}
                           </div>
                           <div className="col-span-1 text-right">
-                            <button
-                              type="button"
-                              onClick={() => remove(index)}
-                              className="text-muted-foreground hover:text-red-500 p-1 cursor-pointer"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => remove(index)}
+                                className="text-muted-foreground hover:text-red-500 p-1 cursor-pointer"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))
@@ -326,23 +432,38 @@ export default function SaleModal({
             </form>
           </div>
 
-          <div className="p-4 border-t bg-muted/30 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 rounded-lg border bg-background font-bold text-sm hover:bg-muted cursor-pointer transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              form="venta-form"
-              disabled={isSubmitting || fields.length === 0}
-              className="px-8 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 disabled:opacity-50 cursor-pointer transition-all flex items-center gap-2"
-            >
-              <Save className="size-4" />{" "}
-              {ventaToEdit ? "ACTUALIZAR PEDIDO" : "REALIZAR PEDIDO"}
-            </button>
+          <div className="p-4 border-t bg-muted/30 flex justify-between items-center gap-3">
+            <div>
+              {ventaToEdit && !isReadOnly && (
+                <button
+                  type="button"
+                  onClick={handleCancelOrder}
+                  className="px-6 py-2 rounded-lg bg-red-500/10 text-red-600 border border-red-500 font-bold text-sm hover:bg-red-500/20 cursor-pointer transition-colors flex items-center gap-2"
+                >
+                  <Ban className="size-4" /> Cancelar Pedido
+                </button>
+              )}
+            </div>
+
+            {isReadOnly ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-8 py-2 rounded-lg border bg-background font-bold text-sm hover:bg-muted cursor-pointer transition-colors"
+              >
+                CERRAR VISTA
+              </button>
+            ) : (
+              <button
+                type="submit"
+                form="venta-form"
+                disabled={isSubmitting || fields.length === 0}
+                className="px-8 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 disabled:opacity-50 cursor-pointer transition-all flex items-center gap-2"
+              >
+                <Save className="size-4" />{" "}
+                {ventaToEdit ? "ACTUALIZAR PEDIDO" : "REALIZAR PEDIDO"}
+              </button>
+            )}
           </div>
         </MagicCard>
       </div>
@@ -364,17 +485,46 @@ export default function SaleModal({
   );
 }
 
-function Header({ title, onClose }: { title: string; onClose: () => void }) {
+function Header({
+  title,
+  onClose,
+  estado,
+}: {
+  title: string;
+  onClose: () => void;
+  estado?: string;
+}) {
+  const estadoNormal = String(estado || "")
+    .trim()
+    .toLowerCase();
+  const badgeColor =
+    estadoNormal === "pendiente"
+      ? "bg-amber-500"
+      : estadoNormal === "entregado"
+        ? "bg-green-500"
+        : estadoNormal === "anulado"
+          ? "bg-red-500"
+          : "bg-muted";
+
   return (
     <div className="px-6 py-4 border-b flex justify-between items-center bg-muted/30">
       <div className="flex items-center gap-3">
         <div className="bg-orange-500/10 p-2 rounded-lg">
           <ShoppingCart className="size-6 text-orange-500" />
         </div>
-        <div>
-          <h2 className="text-lg font-bold">{title}</h2>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">{title}</h2>
+            {estado && (
+              <span
+                className={`px-2 py-0.5 text-[10px] text-white font-black uppercase tracking-widest rounded-full ${badgeColor}`}
+              >
+                {estado}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">
-            Gestión de pedidos CERMADSA
+            Gestión de pedidos <span className="text-orange-500">LA ARADA</span>
           </p>
         </div>
       </div>

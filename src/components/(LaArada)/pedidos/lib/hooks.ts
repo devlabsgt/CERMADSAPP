@@ -64,6 +64,8 @@ export function useCreateVenta() {
         queryClient.invalidateQueries({ queryKey: ["ventas"] });
         queryClient.invalidateQueries({ queryKey: ["catalogos"] });
         Swal.fire({
+          toast: true,
+          position: "top",
           icon: "success",
           title: "Pedido creado correctamente",
           timer: 1500,
@@ -85,6 +87,8 @@ export function useUpdateVenta() {
       } else {
         queryClient.invalidateQueries({ queryKey: ["ventas"] });
         Swal.fire({
+          toast: true,
+          position: "top",
           icon: "success",
           title: "Pedido actualizado correctamente",
           timer: 1500,
