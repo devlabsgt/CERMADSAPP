@@ -17,7 +17,7 @@ import {
   Ban,
 } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
-import ClientModal from "../../clientes/modal/client-modal";
+import ClientModal from "../../clientes/modals/client-modal";
 import AddProductModal from "./add-product-modal";
 import { cn } from "@/lib/utils";
 import { updateEstadoVenta } from "../lib/actions";
@@ -54,8 +54,6 @@ export default function SaleModal({
       fecha_entrega: new Date().toISOString().split("T")[0],
       total: 0,
       detalles: [],
-      placa_camion: "",
-      descripcion_camion: "",
       observaciones: "",
     },
   });
@@ -96,6 +94,7 @@ export default function SaleModal({
           ? new Date(ventaToEdit.fecha_entrega).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
         total: ventaToEdit.total || 0,
+        observaciones: ventaToEdit.observaciones || "",
         detalles:
           ventaToEdit.ven_detalle?.map((d: any) => ({
             producto_id: d.producto_id,
@@ -113,6 +112,7 @@ export default function SaleModal({
         tipo_comprobante: "Recibo",
         fecha_entrega: new Date().toISOString().split("T")[0],
         total: 0,
+        observaciones: "",
         detalles: [],
       });
       setClientSearch("");
@@ -164,12 +164,12 @@ export default function SaleModal({
 
     const result = await Swal.fire({
       title: "¿Estás seguro?",
-      text: "Se cancelará el pedido y se devolverá el stock.",
+      text: "Se anulará el despacho y se devolverá el stock.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#6b7280",
-      confirmButtonText: "Sí, cancelar pedido",
+      confirmButtonText: "Sí, anular despacho",
       cancelButtonText: "No, volver",
     });
 
@@ -180,7 +180,7 @@ export default function SaleModal({
           toast: true,
           position: "top",
           icon: "success",
-          title: "Pedido anulado correctamente",
+          title: "Despacho anulado correctamente",
           showConfirmButton: false,
           timer: 1500,
         });
@@ -202,9 +202,9 @@ export default function SaleModal({
             title={
               ventaToEdit
                 ? isReadOnly
-                  ? "Detalle de Venta"
-                  : "Editar Venta"
-                : "Nueva Venta"
+                  ? "Detalle de Despacho"
+                  : "Editar Despacho"
+                : "Nuevo Despacho"
             }
             onClose={onClose}
             estado={ventaToEdit?.estado}
@@ -351,12 +351,24 @@ export default function SaleModal({
                     </p>
                   )}
                 </div>
+
+                <div className="md:col-span-12 space-y-1.5">
+                  <label className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">
+                    Datos adicionales
+                  </label>
+                  <textarea
+                    {...register("observaciones")}
+                    disabled={isReadOnly}
+                    placeholder="detalles de vehículo o observaciones adicionales..."
+                    className="w-full min-h-15 p-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-y transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-end border-b pb-2">
                   <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">
-                    Detalle del Pedido
+                    Detalle del Despacho
                   </h3>
                   {!isReadOnly && (
                     <button
@@ -440,7 +452,7 @@ export default function SaleModal({
                   onClick={handleCancelOrder}
                   className="px-6 py-2 rounded-lg bg-red-500/10 text-red-600 border border-red-500 font-bold text-sm hover:bg-red-500/20 cursor-pointer transition-colors flex items-center gap-2"
                 >
-                  <Ban className="size-4" /> Cancelar Pedido
+                  <Ban className="size-4" /> Anular Despacho
                 </button>
               )}
             </div>
@@ -461,7 +473,7 @@ export default function SaleModal({
                 className="px-8 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 disabled:opacity-50 cursor-pointer transition-all flex items-center gap-2"
               >
                 <Save className="size-4" />{" "}
-                {ventaToEdit ? "ACTUALIZAR PEDIDO" : "REALIZAR PEDIDO"}
+                {ventaToEdit ? "ACTUALIZAR DESPACHO" : "REALIZAR DESPACHO"}
               </button>
             )}
           </div>
@@ -524,7 +536,8 @@ function Header({
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Gestión de pedidos <span className="text-orange-500">LA ARADA</span>
+            Gestión de despachos{" "}
+            <span className="text-orange-500">LA ARADA</span>
           </p>
         </div>
       </div>

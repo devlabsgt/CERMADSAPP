@@ -14,8 +14,6 @@ export const VentaSchema = z.object({
   fecha_entrega: z.string().optional().or(z.literal("")),
   tipo_venta: z.enum(["Contado", "Crédito"]),
   tipo_comprobante: z.enum(["Recibo", "NIT", "C/F"]).default("Recibo"),
-  placa_camion: z.string().optional(),
-  descripcion_camion: z.string().optional(),
   observaciones: z.string().optional(),
   total: z.coerce.number().min(0, "El total no puede ser negativo"),
   detalles: z.array(DetalleSchema).min(1, "Debe agregar al menos un producto"),

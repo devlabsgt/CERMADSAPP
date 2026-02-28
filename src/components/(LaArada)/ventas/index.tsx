@@ -12,17 +12,17 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useVentas } from "./lib/hooks";
-import SaleModal from "./modal/sale-modal";
-import ReceiptModal from "./modal/receipt-modal";
-import StatusModal from "./modal/status-modal";
-import ListView from "./components/list-view";
+import SaleModal from "./modals/sale-modal";
+import ReceiptModal from "./modals/receipt-modal";
+import StatusModal from "./modals/status-modal";
+import ListView from "./components/ventas-view";
 import MonitorView from "./components/monitor-view";
 import Stats from "./components/stats";
 import ContabilidadView from "./components/contabilidad-view";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 import { Calculator } from "lucide-react";
 
-export default function ListadoPedidos() {
+export default function ListadoDespachos() {
   const { data: ventas = [], isLoading } = useVentas();
   const user = useUser();
   const metadata = user?.user_metadata || {};
@@ -36,10 +36,9 @@ export default function ListadoPedidos() {
   const allowedRoles = ["ventas", "rrhh", "admin", "super"];
   const canManage = allowedRoles.includes(effectiveRole);
 
-  // El modo por defecto es "list" para admins, "monitor" para usuarios normales
   const [viewMode, setViewMode] = useState<
-    "list" | "monitor" | "stats" | "contabilidad"
-  >("list");
+    "ventas" | "monitor" | "estadisticas" | "contabilidad"
+  >("ventas");
   const [searchTerm, setSearchTerm] = useState("");
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
@@ -85,29 +84,29 @@ export default function ListadoPedidos() {
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            {viewMode === "list" ? (
+            {viewMode === "ventas" ? (
               <ShoppingCart className="size-5 md:size-6 text-orange-500" />
             ) : viewMode === "monitor" ? (
               <Truck className="size-5 md:size-6 text-blue-500" />
-            ) : viewMode === "stats" ? (
+            ) : viewMode === "estadisticas" ? (
               <BarChart3 className="size-5 md:size-6 text-purple-500" />
             ) : (
               <Calculator className="size-5 md:size-6 text-emerald-500" />
             )}
-            {viewMode === "list"
-              ? "Control de Pedidos"
+            {viewMode === "ventas"
+              ? "Control de Despacho"
               : viewMode === "monitor"
                 ? "Monitor de Despacho"
-                : viewMode === "stats"
+                : viewMode === "estadisticas"
                   ? "Estadísticas de Ventas"
                   : "Módulo Contable"}
           </h1>
           <p className="text-muted-foreground text-xs md:text-sm flex items-center gap-2">
-            {viewMode === "list"
+            {viewMode === "ventas"
               ? "Gestión de ventas y despachos."
               : viewMode === "monitor"
-                ? "Pedidos pendientes de entrega en tiempo real."
-                : viewMode === "stats"
+                ? "Despachos pendientes de entrega en tiempo real."
+                : viewMode === "estadisticas"
                   ? "Resumen general de ventas por día y mes."
                   : "Exportación y cálculo de impuestos (IVA/ISR)."}
             {realRole === "super" && effectiveRole !== "super" && (
@@ -153,19 +152,19 @@ export default function ListadoPedidos() {
                   <LayoutGrid className="size-4" /> Pendientes
                 </button>
                 <button
-                  onClick={() => setViewMode("list")}
+                  onClick={() => setViewMode("ventas")}
                   className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    viewMode === "list"
+                    viewMode === "ventas"
                       ? "bg-background shadow-sm text-orange-500"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <List className="size-4" /> Lista
+                  <List className="size-4" /> Ventas
                 </button>
                 <button
-                  onClick={() => setViewMode("stats")}
+                  onClick={() => setViewMode("estadisticas")}
                   className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    viewMode === "stats"
+                    viewMode === "estadisticas"
                       ? "bg-background shadow-sm text-purple-500"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -199,13 +198,13 @@ export default function ListadoPedidos() {
         </div>
       </div>
 
-      {viewMode === "list" && canManage && (
+      {viewMode === "ventas" && canManage && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full sm:w-64 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-9.5">
             <Search className="size-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar pedido o recibo..."
+              placeholder="Buscar despacho o recibo..."
               className="bg-transparent outline-none text-xs md:text-sm w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -234,7 +233,9 @@ export default function ListadoPedidos() {
         />
       )}
 
-      {viewMode === "stats" && canManage && <Stats orders={sortedOrders} />}
+      {viewMode === "estadisticas" && canManage && (
+        <Stats orders={sortedOrders} />
+      )}
 
       {viewMode === "contabilidad" && canManage && (
         <ContabilidadView orders={sortedOrders} />

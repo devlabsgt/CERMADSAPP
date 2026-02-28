@@ -1,15 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+} from "lucide-react";
 import { useClients } from "./lib/hooks";
-import ClientModal from "./modal/client-modal";
+import ClientModal from "./modals/client-modal";
+import ClientSalesModal from "./modals/client-sales-modal";
 
 export default function ListadoClientes() {
   const { data: clientes = [], isLoading } = useClients();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
+  const [clientForSales, setClientForSales] = useState<any>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -135,6 +145,7 @@ export default function ListadoClientes() {
                 <th className="hidden md:table-cell md:w-[20%] px-4 py-4 truncate">
                   Email
                 </th>
+                <th className="w-[10%] px-4 py-4 text-center">Ventas</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -189,6 +200,18 @@ export default function ListadoClientes() {
                     <td className="hidden md:table-cell px-4 py-4 text-muted-foreground truncate lowercase">
                       {client.email || "-"}
                     </td>
+                    <td className="px-4 py-4 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setClientForSales(client);
+                          setIsSalesModalOpen(true);
+                        }}
+                        className="p-2 bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 rounded-lg transition-colors cursor-pointer inline-flex"
+                      >
+                        <ShoppingCart className="size-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -201,6 +224,11 @@ export default function ListadoClientes() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         clientToEdit={selectedClient}
+      />
+      <ClientSalesModal
+        isOpen={isSalesModalOpen}
+        onClose={() => setIsSalesModalOpen(false)}
+        client={clientForSales}
       />
     </div>
   );

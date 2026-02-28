@@ -67,7 +67,7 @@ export function useCreateVenta() {
           toast: true,
           position: "top",
           icon: "success",
-          title: "Pedido creado correctamente",
+          title: "Despacho creado correctamente",
           timer: 1500,
           showConfirmButton: false,
         });
@@ -90,7 +90,7 @@ export function useUpdateVenta() {
           toast: true,
           position: "top",
           icon: "success",
-          title: "Pedido actualizado correctamente",
+          title: "Despacho actualizado correctamente",
           timer: 1500,
           showConfirmButton: false,
         });

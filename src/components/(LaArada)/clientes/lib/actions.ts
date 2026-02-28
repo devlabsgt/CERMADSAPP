@@ -79,3 +79,15 @@ export async function deleteClientAction(id: string) {
   revalidatePath("/cermadsa/laarada/clientes");
   return { success: true };
 }
+
+export async function getClientSalesAction(clientId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ven_ventas")
+    .select("*, ven_detalle(*, inv_productos(nombre))")
+    .eq("cliente_id", clientId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}

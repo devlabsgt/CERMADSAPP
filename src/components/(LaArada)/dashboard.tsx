@@ -17,8 +17,8 @@ import {
   Tooltip,
 } from "recharts";
 import { getStockStats } from "./productos/lib/actions";
-import { getPendingOrdersCount, getVentas } from "./pedidos/lib/actions";
-import Stats from "./pedidos/components/stats";
+import { getPendingOrdersCount, getVentas } from "./ventas/lib/actions";
+import Stats from "./ventas/components/stats";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 
 export default function DashboardLaArada() {
@@ -110,15 +110,21 @@ export default function DashboardLaArada() {
 
   const menuItems = [
     {
-      id: "pedidos",
-      href: "/cermadsa/laarada/pedidos",
+      id: "ventas",
+      href: "/cermadsa/laarada/ventas",
       label: "Ventas y pedidos",
       iconKey: "falgkefu",
       desc: "Gestión de órdenes y despachos.",
-      color:
-        "border-orange-500/20 bg-orange-500/5 dark:border-orange-500/40",
+      color: "border-orange-500/20 bg-orange-500/5 dark:border-orange-500/40",
       className: "md:col-span-2 md:row-span-2",
-      allowedRoles: ["super", "admin", "ventas", "contabilidad", "rrhh", "user"],
+      allowedRoles: [
+        "super",
+        "admin",
+        "ventas",
+        "contabilidad",
+        "rrhh",
+        "user",
+      ],
     },
     {
       id: "clientes",
@@ -126,8 +132,7 @@ export default function DashboardLaArada() {
       label: "Clientes",
       iconKey: "kvapezwg",
       desc: "Cartera de clientes.",
-      color:
-        "border-blue-500/20 bg-blue-500/5 dark:border-blue-500/40",
+      color: "border-blue-500/20 bg-blue-500/5 dark:border-blue-500/40",
       className: "md:col-span-1 md:row-span-1",
       allowedRoles: ["super", "admin", "ventas", "contabilidad"],
     },
@@ -137,8 +142,7 @@ export default function DashboardLaArada() {
       label: "Créditos",
       iconKey: "unsfxkxg",
       desc: "Gestión de cobros.",
-      color:
-        "border-red-500/20 bg-red-500/5 dark:border-red-500/40",
+      color: "border-red-500/20 bg-red-500/5 dark:border-red-500/40",
       className: "md:col-span-1 md:row-span-1",
       allowedRoles: ["super", "admin", "contabilidad", "ventas"],
     },
@@ -148,8 +152,7 @@ export default function DashboardLaArada() {
       label: "Productos",
       iconKey: "itixlgjo",
       desc: "Inventario.",
-      color:
-        "border-amber-500/20 bg-amber-500/5 dark:border-amber-500/40",
+      color: "border-amber-500/20 bg-amber-500/5 dark:border-amber-500/40",
       className: "md:col-span-1 md:row-span-1",
       allowedRoles: ["super", "admin", "ventas", "contabilidad"],
     },
@@ -167,10 +170,12 @@ export default function DashboardLaArada() {
   ];
 
   const visibleMenuItems = menuItems.filter((item) =>
-    item.allowedRoles.includes(effectiveRole)
+    item.allowedRoles.includes(effectiveRole),
   );
-  
-  const canViewStats = ["super", "admin", "contabilidad"].includes(effectiveRole);
+
+  const canViewStats = ["super", "admin", "contabilidad"].includes(
+    effectiveRole,
+  );
 
   const handleNavigation = (id: string, href: string) => {
     if (activeId) return;
@@ -252,12 +257,12 @@ export default function DashboardLaArada() {
                   : { scale: 1, y: 0 }
               }
               className={cn(
-                "group relative overflow-hidden rounded-4xl md:rounded-[2.5rem] border flex flex-row md:flex-col items-center md:items-start md:justify-between p-4 md:p-6 bg-card shadow-sm cursor-pointer dark:bg-[#121212]",
+                "group relative overflow-hidden rounded-4xl md:rounded-[2.5rem] border flex flex-row md:flex-col items-center md:items-start md:justify-between p-4 md:p-6 shadow-sm cursor-pointer",
                 item.color,
                 item.className,
               )}
             >
-              {item.id === "pedidos" && stats.pendientes > 0 && (
+              {item.id === "ventas" && stats.pendientes > 0 && (
                 <div className="absolute top-3 right-3 md:top-5 md:right-5 flex items-center bg-amber-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md z-20 animate-pulse ring-2 ring-white dark:ring-black">
                   Pendientes de entrega: {stats.pendientes}
                 </div>
@@ -282,8 +287,8 @@ export default function DashboardLaArada() {
               <div className="relative z-10 shrink-0">
                 <div
                   className={cn(
-                    "p-2 md:p-3 bg-white rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
-                    item.id === "pedidos" && "md:p-5",
+                    "p-2 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
+                    item.id === "ventas" && "md:p-5",
                   )}
                 >
                   <AnimatedIcon
@@ -291,7 +296,7 @@ export default function DashboardLaArada() {
                     target={`#card-${item.id}`}
                     className={cn(
                       "w-8 h-8 md:w-12 md:h-12",
-                      item.id === "pedidos" && "md:w-24 md:h-24",
+                      item.id === "ventas" && "md:w-24 md:h-24",
                     )}
                   />
                 </div>
@@ -315,10 +320,10 @@ export default function DashboardLaArada() {
               id="stats-widget"
               onClick={() => setIsStatsModalOpen(true)}
               whileHover={{ scale: 1.01 }}
-              className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:bg-[#121212] dark:border-purple-500/40 p-6 md:p-8 bg-card shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-62.5 md:min-h-75"
+              className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40 p-6 md:p-8 shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-62.5 md:min-h-75"
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 md:w-[35%] w-full z-10">
-                <div className="p-4 bg-purple-500/10 text-purple-500 rounded-2xl md:rounded-3xl shadow-lg shadow-purple-500/10 shrink-0 group-hover:scale-105 transition-transform">
+                <div className="p-4 bg-white text-purple-500 rounded-2xl md:rounded-3xl shadow-lg shadow-purple-500/10 shrink-0 group-hover:scale-105 transition-transform">
                   <AnimatedIcon
                     iconKey="cnbqxixv"
                     target="#stats-widget"
@@ -367,7 +372,7 @@ export default function DashboardLaArada() {
                         Total Ventas
                       </p>
                       <p className="text-sm lg:text-base font-black text-foreground">
-                        {currentMonthData.totalOrders} pedidos entregados
+                        {currentMonthData.totalOrders} ventas entregadas
                       </p>
                     </div>
                   </div>
@@ -386,9 +391,23 @@ export default function DashboardLaArada() {
                     margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="colorMini" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#9333ea" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
+                      <linearGradient
+                        id="colorMini"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#9333ea"
+                          stopOpacity={0.4}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#9333ea"
+                          stopOpacity={0}
+                        />
                       </linearGradient>
                     </defs>
                     <XAxis

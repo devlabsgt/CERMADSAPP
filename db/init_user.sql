@@ -55,3 +55,14 @@ SET
 --- luego ejecutamos el siguiente comando para generar los iconos a partir de esa imagen ---
 
 pnpm dlx @vite-pwa/assets-generator --preset minimal-2023 public/icon.png
+
+
+
+--- consultar secuencias en postgres ---
+
+SELECT relname 
+FROM pg_class 
+WHERE relkind = 'S';
+
+--  Reiniciar el contador de recibos a 1
+ALTER SEQUENCE ven_ventas_numero_recibo_seq RESTART WITH 1;

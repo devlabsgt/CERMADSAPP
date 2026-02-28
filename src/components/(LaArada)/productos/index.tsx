@@ -12,9 +12,9 @@ import {
   Trophy,
 } from "lucide-react";
 import { useProducts } from "./lib/hooks";
-import ProductModal from "./modal/product-modal";
+import ProductModal from "./modals/product-modal";
 import StatsAccordion from "./components/stats-accordion";
-import TopProductsModal from "./modal/top-products-modal";
+import TopProductsModal from "./modals/top-products-modal";
 import { ProductFormValues } from "./lib/zod";
 import { cn } from "@/lib/utils";
 

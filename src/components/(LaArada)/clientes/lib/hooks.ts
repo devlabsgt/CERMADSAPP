@@ -4,6 +4,7 @@ import {
   createClientAction,
   updateClientAction,
   deleteClientAction,
+  getClientSalesAction,
 } from "./actions";
 import { ClientFormValues } from "./zod";
 import Swal from "sweetalert2";
@@ -19,6 +20,14 @@ export function useClients() {
     queryKey: ["clientes"],
     queryFn: () => getClients(),
     staleTime: 1000 * 60 * 5,
+});
+}
+
+export function useClientSales(clientId: string | null) {
+  return useQuery({
+    queryKey: ["client_sales", clientId],
+    queryFn: () => (clientId ? getClientSalesAction(clientId) : []),
+    enabled: !!clientId,
   });
 }
 

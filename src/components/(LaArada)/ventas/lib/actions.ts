@@ -43,6 +43,7 @@ export async function getVentas() {
   if (error) throw new Error(error.message);
   return data;
 }
+
 export async function createVenta(data: VentaFormValues) {
   const result = VentaSchema.safeParse(data);
   if (!result.success) return { error: "Datos inválidos" };
@@ -64,8 +65,6 @@ export async function createVenta(data: VentaFormValues) {
       tipo_comprobante: cabecera.tipo_comprobante,
       total: cabecera.total,
       fecha_entrega: cabecera.fecha_entrega || new Date().toISOString(),
-      placa_camion: cabecera.placa_camion,
-      descripcion_camion: cabecera.descripcion_camion,
       observaciones: cabecera.observaciones,
       usuario_id: user.id,
       estado: "Pendiente",
@@ -112,6 +111,18 @@ export async function createVenta(data: VentaFormValues) {
     }
   }
 
+  if (cabecera.tipo_venta === "Contado") {
+    const { error: errPago } = await supabase.from("ven_pagos").insert({
+      venta_id: venta.id,
+      monto: cabecera.total,
+      metodo_pago: "Efectivo",
+    });
+
+    if (errPago) {
+      console.error("Error al registrar el pago automático:", errPago.message);
+    }
+  }
+
   revalidatePath("/cermadsa/laarada/pedidos");
   return { success: true };
 }
@@ -129,8 +140,6 @@ export async function updateVenta(id: string, data: VentaFormValues) {
       cliente_id: cabecera.cliente_id,
       tipo_venta: cabecera.tipo_venta,
       tipo_comprobante: cabecera.tipo_comprobante,
-      placa_camion: cabecera.placa_camion,
-      descripcion_camion: cabecera.descripcion_camion,
       observaciones: cabecera.observaciones,
       total: cabecera.total,
       fecha_entrega: cabecera.fecha_entrega || new Date().toISOString(),

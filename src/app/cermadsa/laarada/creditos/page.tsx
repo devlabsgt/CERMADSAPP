@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import ListadoVentas from "@/components/(LaArada)/pedidos";
+import Creditos from "@/components/(LaArada)/creditos";
 
 export default function VentasPage() {
   return (
     <Suspense>
-      <ListadoVentas />
+      <Creditos />
     </Suspense>
   );
 }
