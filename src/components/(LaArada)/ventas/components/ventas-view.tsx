@@ -1,11 +1,6 @@
-import {
-  Calendar,
-  Edit,
-  Printer,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Calendar, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import AnimatedIcon from "@/components/ui/AnimatedIcon";
 
 const getGuatemalaDateParts = (dateInput?: string | Date) => {
   if (!dateInput || dateInput === "Sin Fecha")
@@ -348,43 +343,101 @@ export default function ListView({
                       >
                         <div
                           onClick={() => onEditClick(venta)}
-                          className="grow flex flex-col md:flex-row cursor-pointer hover:ring-inset hover:ring-2 hover:ring-primary/40 transition-all p-4 rounded-l-xl"
+                          className="grow flex flex-col md:flex-row cursor-pointer hover:ring-inset hover:ring-2 hover:ring-primary/40 transition-all p-4 rounded-t-xl md:rounded-l-xl md:rounded-tr-none"
                         >
-                          <div className="flex flex-col gap-2 grow">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-orange-500 text-sm">
-                                #
-                                {String(venta.numero_recibo || 0).padStart(
-                                  5,
-                                  "0",
-                                )}
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-muted text-muted-foreground">
+                          <div className="flex pr-5 flex-col gap-1 w-full md:w-112.5 shrink-0">
+                            <span className="font-mono font-bold text-blue-500 text-sm">
+                              #
+                              {String(venta.numero_recibo || 0).padStart(
+                                5,
+                                "0",
+                              )}
+                              <span className="px-2 ml-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-muted text-muted-foreground">
                                 {venta.tipo_venta}
                               </span>
-                            </div>
-                            <h3 className="font-bold text-foreground text-base uppercase">
+                            </span>
+
+                            <h3 className="font-bold text-foreground text-base uppercase mt-1">
                               {venta.ven_clientes?.nombre}
                             </h3>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Calendar className="size-3" />
-                              <span>
-                                {formatDate
-                                  ? formatDate(venta.fecha_entrega)
-                                  : venta.fecha_entrega}
+
+                            {venta.ven_detalle &&
+                              venta.ven_detalle.length > 0 && (
+                                <div className="flex flex-col gap-1 my-2 py-2 border-y border-border/50">
+                                  {venta.ven_detalle.map((det: any) => (
+                                    <div
+                                      key={det.id}
+                                      className="flex justify-between items-center text-xs text-muted-foreground"
+                                    >
+                                      <span className="truncate pr-2">
+                                        {det.cantidad}{" "}
+                                        {det.inv_productos?.medida || ""}
+                                        {" de "}
+                                        {det.inv_productos?.nombre ||
+                                          "Producto"}
+                                      </span>
+                                      <span className="font-mono font-bold">
+                                        Q{Number(det.subtotal || 0).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                            <div className="flex items-center gap-3 mt-1">
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                                  Total:
+                                </span>
+                                <span className="font-mono font-bold text-lg text-foreground leading-none">
+                                  Q{venta.total?.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col flex-1 justify-between md:pl-4 md:border-l border-border/50 min-h-25 mt-4 md:mt-0">
+                            <div className="flex flex-col gap-1">
+                              {venta.observaciones && (
+                                <div className="flex flex-col">
+                                  <span className="text-sm uppercase font-bold text-blue-600">
+                                    Observaciones:
+                                  </span>
+                                  <span className="text-sm italic text-foreground/90">
+                                    {venta.observaciones}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-baseline gap-1.5 border-t border-border/30 pt-2">
+                              <span className="text-[10px] uppercase font-bold text-blue-600 shrink-0">
+                                Vendedor:
+                              </span>
+                              <span className="text-xs italic text-muted-foreground">
+                                {venta.vendedor?.nombre || "-"}
                               </span>
                             </div>
                           </div>
-                          <div className="flex flex-col items-start md:items-end justify-center shrink-0 mt-3 md:mt-0">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                              Total
-                            </span>
-                            <span className="font-mono font-bold text-lg text-foreground">
-                              Q{venta.total?.toFixed(2)}
-                            </span>
-                          </div>
                         </div>
-                        <div className="flex items-stretch border-t md:border-t-0 md:border-l border-border bg-card">
+                        <div className="flex flex-row items-stretch justify-end border-t md:border-t-0 md:border-l border-border bg-card">
+                          {estadoNormal === "entregado" && (
+                            <button
+                              id={`print-btn-${venta.id}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPrintClick(venta.id);
+                              }}
+                              className="w-1/2 md:w-20 shrink-0 py-5 md:py-0 flex items-center justify-center transition-all bg-transparent border-r border-border/50 hover:ring-inset hover:ring-2 hover:ring-blue-500/40 cursor-pointer"
+                            >
+                              <div className="flex items-center justify-center text-blue-600 dark:text-blue-500">
+                                <AnimatedIcon
+                                  iconKey="qjtwiolr"
+                                  target={`#print-btn-${venta.id}`}
+                                  className="w-8 h-8 md:w-10 md:h-10"
+                                />
+                              </div>
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -392,27 +445,18 @@ export default function ListView({
                                 onStatusClick(venta);
                             }}
                             disabled={estadoNormal !== "pendiente"}
-                            className={`w-1/2 md:w-36 shrink-0 py-3 md:py-0 md:h-full flex items-center justify-center gap-1.5 text-xs uppercase font-bold transition-all border-r md:border-r-0 border-border/50 ${
+                            className={`${
+                              estadoNormal === "entregado" ? "w-1/2" : "w-full"
+                            } md:w-40 shrink-0 py-5 md:py-0 flex items-center justify-center gap-1.5 text-xs uppercase font-bold transition-all ${
                               estadoNormal === "pendiente"
                                 ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer"
                                 : estadoNormal === "entregado"
-                                  ? "bg-green-500/10 text-green-600 opacity-80 cursor-default"
+                                  ? "bg-green-500/10 text-green-600 opacity-90 cursor-default"
                                   : "bg-red-500/10 text-red-600 opacity-80 cursor-default"
                             }`}
                           >
                             {venta.estado || "Pendiente"}{" "}
                             <Edit className="size-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (estadoNormal === "entregado")
-                                onPrintClick(venta.id);
-                            }}
-                            disabled={estadoNormal !== "entregado"}
-                            className={`w-1/2 md:w-16 shrink-0 py-3 md:py-0 md:h-full flex items-center justify-center transition-all ${estadoNormal === "entregado" ? "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
-                          >
-                            <Printer className="size-5" />
                           </button>
                         </div>
                       </div>

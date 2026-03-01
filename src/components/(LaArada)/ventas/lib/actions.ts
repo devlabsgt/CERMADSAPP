@@ -22,7 +22,7 @@ export async function getCatalogos() {
 
 export async function getVentas() {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data: ventas, error } = await supabase
     .from("ven_ventas")
     .select(
       `
@@ -41,7 +41,29 @@ export async function getVentas() {
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data;
+
+  const usuarioIds = Array.from(
+    new Set(ventas.map((v) => v.usuario_id).filter(Boolean)),
+  ) as string[];
+
+  if (usuarioIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, nombre")
+      .in("id", usuarioIds);
+
+    if (profiles) {
+      return ventas.map((venta) => {
+        const profile = profiles.find((p) => p.id === venta.usuario_id);
+        return {
+          ...venta,
+          vendedor: { nombre: profile?.nombre || null },
+        };
+      });
+    }
+  }
+
+  return ventas;
 }
 
 export async function createVenta(data: VentaFormValues) {
@@ -171,7 +193,7 @@ export async function updateVenta(id: string, data: VentaFormValues) {
 export async function getVentaById(id: string) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data: venta, error } = await supabase
     .from("ven_ventas")
     .select(
       `
@@ -186,8 +208,25 @@ export async function getVentaById(id: string) {
     .eq("id", id)
     .single();
 
-  if (error) return null;
-  return data;
+  if (error || !venta) return null;
+
+  // Traer el nombre del vendedor manualmente si existe un usuario_id
+  if (venta.usuario_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("nombre")
+      .eq("id", venta.usuario_id)
+      .single();
+
+    if (profile) {
+      return {
+        ...venta,
+        vendedor: { nombre: profile.nombre },
+      };
+    }
+  }
+
+  return venta;
 }
 
 export async function updateEstadoVenta(

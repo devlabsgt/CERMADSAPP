@@ -168,7 +168,7 @@ export default function DetalleCreditoModal({
                           <div>
                             <p className="font-bold text-base md:text-lg flex items-center gap-2 text-foreground">
                               <Receipt className="size-4 md:size-5 text-muted-foreground" />
-                              Despacho #
+                              Venta #
                               {venta.numero_recibo
                                 ? String(venta.numero_recibo).padStart(5, "0")
                                 : venta.id.slice(0, 6).toUpperCase()}

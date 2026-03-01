@@ -23,6 +23,9 @@ type ProductoCatalogo = ProductFormValues & { id: string };
 export default function ListadoProductos() {
   const { data: productos = [], isLoading } = useProducts();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "activos" | "inactivos" | "todos"
+  >("activos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<
     ProductoCatalogo | undefined
@@ -30,11 +33,17 @@ export default function ListadoProductos() {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [isTopModalOpen, setIsTopModalOpen] = useState(false);
 
-  const filteredProductos = (productos || []).filter(
-    (prod: any) =>
+  const filteredProductos = (productos || []).filter((prod: any) => {
+    const isActivo = prod.activo !== false;
+    const matchesSearch =
       prod.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prod.codigo?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+      prod.codigo?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+    if (statusFilter === "activos" && !isActivo) return false;
+    if (statusFilter === "inactivos" && isActivo) return false;
+    return true;
+  });
 
   const allExpanded = useMemo(() => {
     if (filteredProductos.length === 0) return false;
@@ -90,15 +99,26 @@ export default function ListadoProductos() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full sm:max-w-md focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-          <Search className="size-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar producto..."
-            className="bg-transparent outline-none text-xs md:text-sm w-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
+          <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full sm:max-w-md focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <Search className="size-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar producto..."
+              className="bg-transparent outline-none text-xs md:text-sm w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="bg-background border border-border rounded-lg px-3 py-2 text-xs md:text-sm font-bold text-muted-foreground outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto"
+          >
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+            <option value="todos">Todos</option>
+          </select>
         </div>
 
         <div className="flex gap-2 w-full sm:w-auto">
@@ -171,6 +191,7 @@ export default function ListadoProductos() {
                 filteredProductos.map((prod: any) => {
                   const isLowStock = prod.stock_actual <= prod.stock_minimo;
                   const isExpanded = expandedRows[prod.id];
+                  const isActivo = prod.activo !== false;
 
                   return (
                     <React.Fragment key={prod.id}>
@@ -179,13 +200,22 @@ export default function ListadoProductos() {
                         className={cn(
                           "transition-colors cursor-pointer group",
                           isExpanded ? "bg-muted/30" : "hover:bg-muted/50",
+                          !isActivo &&
+                            "opacity-50 bg-muted/10 hover:bg-muted/20",
                         )}
                       >
                         <td className="px-2 md:px-6 py-4 font-mono font-bold text-primary truncate">
                           {prod.codigo}
                         </td>
                         <td className="px-2 md:px-6 py-4 font-semibold uppercase truncate">
-                          {prod.nombre}
+                          <div className="flex items-center gap-2">
+                            {prod.nombre}
+                            {!isActivo && (
+                              <span className="bg-red-500/10 text-red-500 text-[9px] px-1.5 py-0.5 rounded-sm font-bold tracking-wider">
+                                INACTIVO
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-2 md:px-6 py-4 text-center font-medium text-muted-foreground">
                           {prod.medida}

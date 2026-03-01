@@ -11,6 +11,7 @@ export const ProductSchema = z.object({
     .number()
     .min(0, "El mínimo no puede ser negativo")
     .default(10),
+  activo: z.boolean().default(true),
 });
 
 export type ProductFormValues = z.infer<typeof ProductSchema>;

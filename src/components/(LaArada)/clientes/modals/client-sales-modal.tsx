@@ -145,7 +145,7 @@ export default function ClientSalesModal({
           <div>
             <h2 className="text-xl md:text-3xl font-black flex items-center gap-3 uppercase text-primary">
               <ShoppingCart className="size-6 md:size-8" />
-              Historial de Despachos
+              Historial de Ventas
             </h2>
             <p className="text-sm md:text-base text-muted-foreground font-bold uppercase mt-1">
               Cliente: <span className="text-foreground">{client.nombre}</span>{" "}
@@ -243,7 +243,7 @@ export default function ClientSalesModal({
                         colSpan={5}
                         className="px-4 py-8 text-center text-muted-foreground font-bold"
                       >
-                        No se encontraron despachos para estos filtros.
+                        No se encontraron ventas para estos filtros.
                       </td>
                     </tr>
                   ) : (

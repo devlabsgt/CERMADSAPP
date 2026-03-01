@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import Image from "next/image";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { cn } from "@/lib/utils";
@@ -108,53 +107,62 @@ export default function DashboardLaArada() {
     return { totalMes, totalOrders, avgDaily, bestDayTotal, chartData };
   }, [ventas]);
 
+  const canViewContabilidad = ["super", "admin", "contabilidad"].includes(
+    effectiveRole,
+  );
+
   const menuItems = [
     {
       id: "ventas",
       href: "/cermadsa/laarada/ventas",
-      label: "Ventas y pedidos",
-      iconKey: "falgkefu",
-      desc: "Gestión de órdenes y despachos.",
+      label: "Ventas y Despachos",
+      iconKey: "kphyjsqb",
+      desc: "Gestión de Ventas y despachos.",
       color: "border-orange-500/20 bg-orange-500/5 dark:border-orange-500/40",
-      className: "md:col-span-2 md:row-span-2",
-      allowedRoles: [
-        "super",
-        "admin",
-        "ventas",
-        "contabilidad",
-        "rrhh",
-        "user",
-      ],
+      className: canViewContabilidad
+        ? "md:col-span-2 md:row-span-1"
+        : "md:col-span-2 md:row-span-2",
+      allowedRoles: ["super", "admin", "contabilidad", "ventas", "user"],
     },
     {
       id: "clientes",
       href: "/cermadsa/laarada/clientes",
       label: "Clientes",
-      iconKey: "kvapezwg",
+      iconKey: "xkrgmuxd",
       desc: "Cartera de clientes.",
       color: "border-blue-500/20 bg-blue-500/5 dark:border-blue-500/40",
       className: "md:col-span-1 md:row-span-1",
-      allowedRoles: ["super", "admin", "ventas", "contabilidad"],
+      allowedRoles: ["super", "admin", "contabilidad", "ventas"],
     },
     {
       id: "creditos",
       href: "/cermadsa/laarada/creditos",
       label: "Créditos",
-      iconKey: "unsfxkxg",
+      iconKey: "qrhmobcu",
       desc: "Gestión de cobros.",
       color: "border-red-500/20 bg-red-500/5 dark:border-red-500/40",
       className: "md:col-span-1 md:row-span-1",
       allowedRoles: ["super", "admin", "contabilidad", "ventas"],
     },
     {
+      id: "contabilidad",
+      href: "/cermadsa/laarada/contabilidad",
+      label: "Contabilidad",
+      iconKey: "hrxrggwa",
+      desc: "Gestión financiera y reportes.",
+      color: "border-indigo-500/20 bg-indigo-500/5 dark:border-indigo-500/40",
+      className: "md:col-span-2 md:row-span-1",
+      allowedRoles: ["super", "admin", "contabilidad"],
+    },
+    {
       id: "productos",
       href: "/cermadsa/laarada/productos",
       label: "Productos",
-      iconKey: "itixlgjo",
+      iconKey: "gbzbfgyf",
       desc: "Inventario.",
       color: "border-amber-500/20 bg-amber-500/5 dark:border-amber-500/40",
       className: "md:col-span-1 md:row-span-1",
-      allowedRoles: ["super", "admin", "ventas", "contabilidad"],
+      allowedRoles: ["super", "admin", "contabilidad", "ventas"],
     },
     {
       id: "proveedores",
@@ -187,12 +195,7 @@ export default function DashboardLaArada() {
 
   return (
     <>
-      <Script
-        src="https://cdn.lordicon.com/lordicon.js"
-        strategy="afterInteractive"
-      />
-
-      <div className="min-h-screen p-6 lg:p-12 space-y-10 max-w-400 w-full mx-auto">
+      <div className="min-h-screen px-6 lg:px-12 space-y-10 max-w-550 w-full mx-auto">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
           <header className="flex items-center gap-4 md:gap-6 group">
             <div className="relative size-12 md:size-16 shrink-0 transition-transform duration-300 group-hover:-translate-y-2">
@@ -257,7 +260,7 @@ export default function DashboardLaArada() {
                   : { scale: 1, y: 0 }
               }
               className={cn(
-                "group relative overflow-hidden rounded-4xl md:rounded-[2.5rem] border flex flex-row md:flex-col items-center md:items-start md:justify-between p-4 md:p-6 shadow-sm cursor-pointer",
+                "group relative overflow-hidden rounded-4xl md:rounded-[2.5rem] border flex flex-row items-center justify-start gap-4 md:gap-6 p-4 md:p-6 shadow-sm cursor-pointer",
                 item.color,
                 item.className,
               )}
@@ -288,21 +291,23 @@ export default function DashboardLaArada() {
                 <div
                   className={cn(
                     "p-2 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
-                    item.id === "ventas" && "md:p-5",
+                    item.id === "ventas" && !canViewContabilidad && "md:p-5",
                   )}
                 >
                   <AnimatedIcon
                     iconKey={item.iconKey}
                     target={`#card-${item.id}`}
                     className={cn(
-                      "w-8 h-8 md:w-12 md:h-12",
-                      item.id === "ventas" && "md:w-24 md:h-24",
+                      "w-8 h-8 md:w-20 md:h-20",
+                      item.id === "ventas" &&
+                        !canViewContabilidad &&
+                        "md:w-24 md:h-24",
                     )}
                   />
                 </div>
               </div>
 
-              <div className="ml-4 md:ml-0 space-y-0 md:space-y-1 relative z-10">
+              <div className="flex flex-col space-y-0 md:space-y-1 relative z-10">
                 <h3 className="text-base md:text-xl font-bold tracking-tight text-foreground transition-colors">
                   {item.label}
                 </h3>
@@ -320,14 +325,14 @@ export default function DashboardLaArada() {
               id="stats-widget"
               onClick={() => setIsStatsModalOpen(true)}
               whileHover={{ scale: 1.01 }}
-              className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40 p-6 md:p-8 shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-62.5 md:min-h-75"
+              className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40 p-6 md:p-8 shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-75 mb-12"
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 md:w-[35%] w-full z-10">
                 <div className="p-4 bg-white text-purple-500 rounded-2xl md:rounded-3xl shadow-lg shadow-purple-500/10 shrink-0 group-hover:scale-105 transition-transform">
                   <AnimatedIcon
-                    iconKey="cnbqxixv"
+                    iconKey="qgwuoxgw"
                     target="#stats-widget"
-                    className="w-16 h-16 md:w-20 md:h-20"
+                    className="w-8 h-8 md:w-20 md:h-20"
                   />
                 </div>
                 <div className="space-y-1 w-full">
@@ -384,7 +389,7 @@ export default function DashboardLaArada() {
                 </div>
               </div>
 
-              <div className="w-full md:w-[65%] h-48 md:h-full min-h-50 flex-1 z-10">
+              <div className="w-full md:w-[65%] h-50 md:h-full min-h-50 flex-1 z-10 mt-4 md:mt-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={currentMonthData.chartData}
@@ -489,7 +494,7 @@ export default function DashboardLaArada() {
                     <AnimatedIcon
                       iconKey="cnbqxixv"
                       target="#stats-modal-header"
-                      className="w-8 h-8 md:w-10 md:h-10"
+                      className="w-8 h-8 md:w-20 md:h-20"
                     />
                   </div>
                   <div>

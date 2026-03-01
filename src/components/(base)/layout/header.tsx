@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 import { logout } from "@/app/actions";
 import Swal from "sweetalert2";
@@ -25,53 +25,77 @@ import {
   Truck,
   ReceiptText,
   PieChart,
+  User,
+  ShieldAlert,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { AuroraText } from "@/components/ui/aurora-text";
-import AnimatedIcon from "@/components/ui/AnimatedIcon"; // <- Agregado
+import AnimatedIcon from "@/components/ui/AnimatedIcon";
+import VerPerfil from "@/components/(base)/(users)/profile/VerPerfil";
 
 export default function Header() {
   const user = useUser();
   const [isOpen, setIsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => {}, [user]);
-
   const metadata = user?.user_metadata || {};
+  const realRole = metadata.rol || user?.role || "user";
+  const [effectiveRole, setEffectiveRole] = useState(realRole);
+
+  useEffect(() => {
+    if (realRole) setEffectiveRole(realRole);
+  }, [realRole]);
+
   const username =
     metadata.username || user?.email?.split("@")[0] || "Invitado";
-  const userRole = metadata.rol || user?.role || "user";
-  const canManageProfiles = ["super", "admin", "rrhh"].includes(userRole);
+  const canManageProfiles = ["super", "admin", "rrhh"].includes(effectiveRole);
 
   const adminLinks = [
-    { href: "/cermadsa", label: "Inicio", icon: Home },
-    { href: "/cermadsa/laarada/clientes", label: "Clientes", icon: Users },
-    { href: "/cermadsa/laarada/productos", label: "Productos", icon: Package },
     {
-      href: "/cermadsa/laarada/pedidos",
-      label: "Pedidos",
+      href: "/cermadsa",
+      label: "Inicio",
+      icon: Home,
+      roles: ["super", "admin", "contabilidad", "ventas", "user"],
+    },
+    {
+      href: "/cermadsa/laarada/ventas",
+      label: "Ventas y Despachos",
       icon: ClipboardList,
+      roles: ["super", "admin", "contabilidad", "ventas", "user"],
     },
     {
-      href: "/cermadsa/laarada/historiales",
-      label: "Historiales",
-      icon: History,
+      href: "/cermadsa/laarada/clientes",
+      label: "Clientes",
+      icon: Users,
+      roles: ["super", "admin", "contabilidad", "ventas"],
     },
-    { href: "/cermadsa/laarada/creditos", label: "Créditos", icon: CreditCard },
+    {
+      href: "/cermadsa/laarada/creditos",
+      label: "Créditos",
+      icon: CreditCard,
+      roles: ["super", "admin", "contabilidad", "ventas"],
+    },
+    {
+      href: "/cermadsa/laarada/contabilidad",
+      label: "Contabilidad",
+      icon: ReceiptText,
+      roles: ["super", "admin", "contabilidad"],
+    },
+    {
+      href: "/cermadsa/laarada/productos",
+      label: "Productos",
+      icon: Package,
+      roles: ["super", "admin", "contabilidad", "ventas"],
+    },
     {
       href: "/cermadsa/laarada/proveedores",
       label: "Proveedores",
       icon: Truck,
+      roles: ["super", "admin", "contabilidad"],
     },
-    {
-      href: "/cermadsa/laarada/gastos",
-      label: "Registro de gastos",
-      icon: ReceiptText,
-    },
-    { href: "/cermadsa/laarada/reportes", label: "Reportes", icon: PieChart },
-    { href: "/cermadsa/usuarios", label: "Usuarios", icon: Users },
   ];
 
   const publicLinks = [
@@ -83,9 +107,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     setIsOpen(false);
-
     const isDark = document.documentElement.classList.contains("dark");
-
     const result = await Swal.fire({
       title: "¿Cerrar sesión?",
       text: "Se cerrará tu sesión actual.",
@@ -98,16 +120,15 @@ export default function Header() {
       background: isDark ? "#09090b" : "#ffffff",
       color: isDark ? "#ffffff" : "#000000",
     });
-
-    if (result.isConfirmed) {
-      await logout();
-    }
+    if (result.isConfirmed) await logout();
   };
 
-  const inicioLink = adminLinks[0];
-  const usuariosLink = adminLinks[adminLinks.length - 1];
-  const middleLinks = adminLinks.slice(1, -1);
-  const showMiddleSection = pathname?.startsWith("/cermadsa/laarada");
+  const visibleAdminLinks = adminLinks.filter((link) =>
+    link.roles.includes(effectiveRole),
+  );
+  const showMiddleSection =
+    (pathname?.startsWith("/cermadsa/laarada") || pathname === "/cermadsa") &&
+    user;
 
   return (
     <>
@@ -124,7 +145,6 @@ export default function Header() {
                 className="h-full w-auto object-contain rounded-lg"
               />
             </Link>
-
             {user && (
               <div className="hidden md:flex ml-8 border-l border-border/30 h-10 items-center">
                 <BreadcrumbNav />
@@ -134,8 +154,6 @@ export default function Header() {
 
           <div className="flex items-center gap-3">
             <AnimatedThemeToggler />
-
-            {/* Botón de recarga (F5) añadido */}
             <button
               id="refresh-btn"
               onClick={() => window.location.reload()}
@@ -147,7 +165,6 @@ export default function Header() {
                 className="size-6 md:size-10"
               />
             </button>
-
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="flex items-center justify-center rounded-xl p-2.5 md:p-3 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer transition-all active:scale-95"
@@ -170,7 +187,7 @@ export default function Header() {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -186,7 +203,7 @@ export default function Header() {
             <div className="flex flex-col text-sm">
               <span className="font-bold leading-tight">{username}</span>
               <span className="text-muted-foreground text-xs font-medium uppercase leading-tight">
-                {userRole}
+                {effectiveRole}
               </span>
             </div>
           ) : (
@@ -203,7 +220,24 @@ export default function Header() {
         <div className="flex flex-col min-h-[calc(100%-80px)] px-6 pb-8">
           {user ? (
             <>
-              <div className="mb-8 mt-2">
+              {realRole === "super" && (
+                <div className="mb-6 flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/50 p-3 rounded-xl">
+                  <ShieldAlert className="size-5 text-yellow-600 shrink-0" />
+                  <select
+                    value={effectiveRole}
+                    onChange={(e) => setEffectiveRole(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-yellow-700 outline-none cursor-pointer w-full"
+                  >
+                    <option value="super">Simular: SUPER</option>
+                    <option value="admin">Simular: Admin</option>
+                    <option value="contabilidad">Simular: Contabilidad</option>
+                    <option value="ventas">Simular: Ventas</option>
+                    <option value="user">Simular: User</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="mb-8">
                 <button
                   onClick={handleLogout}
                   className="flex items-center justify-between rounded-xl bg-primary text-primary-foreground px-5 py-3 text-sm font-bold w-full hover:opacity-90 transition-all cursor-pointer"
@@ -213,51 +247,60 @@ export default function Header() {
                 </button>
               </div>
 
-              <nav className="flex flex-col mb-8 pl-2 w-full">
-                {canManageProfiles && (
-                  <>
-                    <div className="mb-6">
-                      <Link
-                        href={inicioLink.href}
-                        onClick={() => setIsOpen(false)}
-                        className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-3 py-1 relative group"
-                      >
-                        <inicioLink.icon className="size-5" />
-                        <span>{inicioLink.label}</span>
-                        <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                      </Link>
-                    </div>
-
-                    {showMiddleSection && (
-                      <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
-                        {middleLinks.map((link) => (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            onClick={() => setIsOpen(false)}
-                            className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-3 py-1 relative group"
-                          >
-                            <link.icon className="size-5" />
-                            <span>{link.label}</span>
-                            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="pt-6 border-t border-border/90 w-full mt-6">
-                      <Link
-                        href={usuariosLink.href}
-                        onClick={() => setIsOpen(false)}
-                        className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground transition-colors flex items-center gap-3 py-1 relative group"
-                      >
-                        <usuariosLink.icon className="size-5" />
-                        <span>{usuariosLink.label}</span>
-                        <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                      </Link>
-                    </div>
-                  </>
+              <nav className="flex flex-col mb-8 pl-2 w-full gap-6">
+                {visibleAdminLinks.length > 0 && (
+                  <Link
+                    href="/cermadsa"
+                    onClick={() => setIsOpen(false)}
+                    className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
+                  >
+                    <Home className="size-5" />
+                    <span>Inicio</span>
+                    <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                  </Link>
                 )}
+
+                {showMiddleSection && visibleAdminLinks.length > 1 && (
+                  <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
+                    {visibleAdminLinks.slice(1).map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setIsOpen(false)}
+                        className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
+                      >
+                        <link.icon className="size-5" />
+                        <span>{link.label}</span>
+                        <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      setIsProfileOpen(true);
+                    }}
+                    className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group cursor-pointer"
+                  >
+                    <User className="size-5" />
+                    <span>Mi Perfil</span>
+                    <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                  </button>
+                  {canManageProfiles && (
+                    <Link
+                      href="/cermadsa/usuarios"
+                      onClick={() => setIsOpen(false)}
+                      className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
+                    >
+                      <Users className="size-5" />
+                      <span>Usuarios</span>
+                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                    </Link>
+                  )}
+                </div>
               </nav>
             </>
           ) : (
@@ -272,7 +315,6 @@ export default function Header() {
                   <LogIn className="size-4" />
                 </Link>
               </div>
-
               <nav className="flex flex-col gap-6 mb-8 pl-2">
                 {publicLinks.map((link) => (
                   <Link
@@ -290,33 +332,37 @@ export default function Header() {
           )}
 
           <div className="mt-auto pt-6 border-t border-border/40">
-            <div className="flex flex-col space-y-6">
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4 }}
-                className="text-center space-y-1 pt-4"
-              >
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">
-                  © 2026 CERMADSAPP
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-widest">
-                  Powered by{" "}
-                  <a
-                    href="https://www.oscar27jimenez.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline cursor-pointer transition-all inline-block"
-                  >
-                    <AuroraText>Kore | Ingeniería</AuroraText>
-                  </a>
-                </p>
-              </motion.div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4 }}
+              className="text-center space-y-1 pt-4"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">
+                © 2026 CERMADSAPP
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest">
+                Powered by{" "}
+                <a
+                  href="https://www.oscar27jimenez.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline inline-block"
+                >
+                  <AuroraText>Kore | Ingeniería</AuroraText>
+                </a>
+              </p>
+            </motion.div>
           </div>
         </div>
       </aside>
+
+      <VerPerfil
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        userId={user?.id || null}
+      />
     </>
   );
 }

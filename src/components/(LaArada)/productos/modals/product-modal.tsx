@@ -37,6 +37,7 @@ export default function ProductModal({
     reset,
     setError,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(ProductSchema),
@@ -47,8 +48,11 @@ export default function ProductModal({
       precio_base: 90,
       stock_actual: 0,
       stock_minimo: 10,
+      activo: true,
     },
   });
+
+  const isActive = watch("activo");
 
   useEffect(() => {
     const prepareModal = async () => {
@@ -63,6 +67,7 @@ export default function ProductModal({
           precio_base: 90,
           stock_actual: 0,
           stock_minimo: 10,
+          activo: true,
         });
         const code = await getNextProductCode();
         setValue("codigo", code);
@@ -70,11 +75,12 @@ export default function ProductModal({
     };
     prepareModal();
   }, [productToEdit, reset, isOpen, setValue]);
+
   const handleDelete = () => {
     const isDark = theme === "dark";
     Swal.fire({
       title: "¿Eliminar producto?",
-      text: "Esta acción no se puede deshacer",
+      text: "Esta acción no se puede deshacer y perdera todos los registros relacionados a este producto",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
@@ -214,6 +220,29 @@ export default function ProductModal({
               />
             </div>
           </div>
+
+          {productToEdit && (
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/5">
+              <div className="space-y-0.5">
+                <label className="text-xs font-bold text-foreground/70 uppercase">
+                  Estado del Producto
+                </label>
+                <p className="text-[10px] text-muted-foreground italic">
+                  {isActive
+                    ? "Disponible para la venta"
+                    : "No disponible en el catálogo"}
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...register("activo")}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-red-500/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+              </label>
+            </div>
+          )}
 
           <div className="flex justify-between items-center pt-6">
             <div>

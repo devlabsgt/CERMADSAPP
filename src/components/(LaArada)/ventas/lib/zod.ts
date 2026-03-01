@@ -11,6 +11,7 @@ export const DetalleSchema = z.object({
 export const VentaSchema = z.object({
   id: z.string().optional(),
   cliente_id: z.string().uuid("Seleccione un cliente válido"),
+  usuario_id: z.string().uuid().optional(),
   fecha_entrega: z.string().optional().or(z.literal("")),
   tipo_venta: z.enum(["Contado", "Crédito"]),
   tipo_comprobante: z.enum(["Recibo", "NIT", "C/F"]).default("Recibo"),

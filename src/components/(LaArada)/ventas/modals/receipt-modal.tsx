@@ -44,7 +44,7 @@ export default function ReceiptModal({
       doc.write(`
         <html>
           <head>
-            <title>Ticket_La_Arada</title>
+            <title>Despacho_La_Arada</title>
             <style>
               @page { 
                 margin: 0; 
@@ -71,26 +71,20 @@ export default function ReceiptModal({
               .font-bold { font-weight: 700; }
               .uppercase { text-transform: uppercase; }
               .w-full { width: 100%; }
-              .w-8 { width: 2rem; }
               .border-t-2 { border-top-width: 2px; }
               .border-dashed { border-top-style: dashed; }
               .border-black { border-color: black; }
               .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-              .pr-1 { padding-right: 0.25rem; }
               .mb-2 { margin-bottom: 0.5rem; }
               .mt-1 { margin-top: 0.25rem; }
               .mt-2 { margin-top: 0.5rem; }
-              .gap-2 { gap: 0.5rem; }
               table { border-collapse: collapse; width: 100%; }
               th, td { vertical-align: top; padding: 2px 0; }
               .text-2xl { font-size: 1.5rem; line-height: 2rem; }
               .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
               .text-xs { font-size: 0.75rem; line-height: 1rem; }
-              .text-\\[10px\\] { font-size: 10px; }
               .text-gray-600 { color: #4b5563; }
-              .text-gray-500 { color: #6b7280; }
               .space-y-1 > * + * { margin-top: 0.25rem; }
-              .align-top { vertical-align: top; }
             </style>
           </head>
           <body>
@@ -107,8 +101,6 @@ export default function ReceiptModal({
           document.body.removeChild(iframe);
         }, 1000);
       }, 250);
-    } else {
-      window.print();
     }
   };
 
@@ -117,11 +109,7 @@ export default function ReceiptModal({
   const tipoComprobante = venta?.tipo_comprobante || "Recibo";
   const isFactura = tipoComprobante.includes("Factura");
   const clientNit = venta?.ven_clientes?.nit;
-
-  const nitToPrint =
-    tipoComprobante === "Factura NIT" && clientNit && clientNit !== ""
-      ? clientNit
-      : "C/F";
+  const nitToPrint = isFactura && clientNit ? clientNit : "C/F";
 
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -129,7 +117,7 @@ export default function ReceiptModal({
         <div className="flex flex-col gap-4 p-4 border-b bg-gray-50 shrink-0">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold flex items-center gap-2 text-gray-800">
-              <FileText className="size-5" /> Vista Previa de Ticket
+              <FileText className="size-5" /> Vista Previa de Venta
             </h2>
             <button
               onClick={onClose}
@@ -148,16 +136,6 @@ export default function ReceiptModal({
               <div className="px-3 py-1 rounded-md bg-purple-100 text-purple-800 font-bold text-sm uppercase tracking-wider border border-purple-200">
                 {tipoComprobante}
               </div>
-              {isFactura && (
-                <div className="flex items-center gap-2 sm:border-l sm:pl-4">
-                  <span className="text-xs text-gray-500 font-bold uppercase">
-                    NIT ASIGNADO:
-                  </span>
-                  <span className="font-mono font-bold text-sm">
-                    {nitToPrint}
-                  </span>
-                </div>
-              )}
             </div>
 
             <button
@@ -190,28 +168,22 @@ export default function ReceiptModal({
 
                 <div>
                   <p>
-                    <span className="font-bold">TICKET NO:</span>{" "}
+                    <span className="font-bold uppercase">Venta No:</span>{" "}
                     {String(venta.numero_recibo).padStart(5, "0")}
                   </p>
                   <p>
-                    <span className="font-bold">FECHA:</span>{" "}
-                    {new Date(venta.created_at).toLocaleDateString("es-GT")}{" "}
-                    {new Date(venta.created_at).toLocaleTimeString("es-GT", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                  <p>
-                    <span className="font-bold">CLIENTE:</span>{" "}
+                    <span className="font-bold uppercase">Cliente:</span>{" "}
                     {venta.ven_clientes?.nombre}
                   </p>
                   {isFactura && (
                     <p>
-                      <span className="font-bold">NIT:</span> {nitToPrint}
+                      <span className="font-bold uppercase">Nit:</span>{" "}
+                      {nitToPrint}
                     </p>
                   )}
                   <p>
-                    <span className="font-bold">TIPO:</span> {tipoComprobante}
+                    <span className="font-bold uppercase">Tipo:</span>{" "}
+                    {tipoComprobante}
                   </p>
                 </div>
 
@@ -220,7 +192,7 @@ export default function ReceiptModal({
                 <table className="w-full text-left">
                   <thead>
                     <tr>
-                      <th className="py-1 w-8">CANT</th>
+                      <th className="py-1">CANT</th>
                       <th className="py-1">DESCRIPCIÓN</th>
                       <th className="py-1 text-right">TOTAL</th>
                     </tr>
@@ -228,7 +200,9 @@ export default function ReceiptModal({
                   <tbody>
                     {venta.ven_detalle?.map((item: any) => (
                       <tr key={item.id} className="align-top">
-                        <td className="py-1">{item.cantidad}</td>
+                        <td className="py-1">
+                          {item.cantidad} {item.inv_productos?.medida || ""}
+                        </td>
                         <td className="py-1 pr-1">
                           {item.inv_productos?.nombre}
                           <div className="text-[10px] text-gray-600">
@@ -253,21 +227,20 @@ export default function ReceiptModal({
                 <div className="border-t-2 border-dashed border-black mb-2"></div>
 
                 <div className="text-center text-[10px] space-y-1">
-                  {(venta.placa_camion || venta.descripcion_camion) && (
-                    <p>
-                      <span className="font-bold">Transporte:</span> Placa{" "}
-                      {venta.placa_camion} - {venta.descripcion_camion}
-                    </p>
-                  )}
-                  <p className="font-bold text-xs mt-2">
-                    ¡GRACIAS POR SU COMPRA!
+                  <p className="font-bold text-xs mt-2 uppercase">
+                    ¡Gracias por su compra!
                   </p>
-                  {isFactura && (
-                    <p className="mt-2 text-gray-500">
-                      Documento emitido internamente. No válido como factura
-                      fiscal (FEL) hasta su certificación.
-                    </p>
-                  )}
+                  <p className="mt-1">
+                    <span className="font-bold uppercase">Vendedor:</span>{" "}
+                    {venta.vendedor?.nombre || "-"}
+                  </p>
+                  <p className="mt-2 text-center">
+                    {new Date(venta.created_at).toLocaleDateString("es-GT")}{" "}
+                    {new Date(venta.created_at).toLocaleTimeString("es-GT", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
                 </div>
               </div>
             ) : (

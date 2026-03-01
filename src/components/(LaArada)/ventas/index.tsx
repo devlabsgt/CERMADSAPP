@@ -22,7 +22,7 @@ import ContabilidadView from "./components/contabilidad-view";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 import { Calculator } from "lucide-react";
 
-export default function ListadoDespachos() {
+export default function ListadoVentas() {
   const { data: ventas = [], isLoading } = useVentas();
   const user = useUser();
   const metadata = user?.user_metadata || {};
@@ -94,7 +94,7 @@ export default function ListadoDespachos() {
               <Calculator className="size-5 md:size-6 text-emerald-500" />
             )}
             {viewMode === "ventas"
-              ? "Control de Despacho"
+              ? "Control de Ventas"
               : viewMode === "monitor"
                 ? "Monitor de Despacho"
                 : viewMode === "estadisticas"
@@ -149,7 +149,7 @@ export default function ListadoDespachos() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <LayoutGrid className="size-4" /> Pendientes
+                  <LayoutGrid className="size-4" /> Despacho
                 </button>
                 <button
                   onClick={() => setViewMode("ventas")}
