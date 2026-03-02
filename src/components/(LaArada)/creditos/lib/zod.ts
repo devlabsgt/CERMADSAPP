@@ -17,9 +17,12 @@ export interface ClienteCredito {
   totalDeuda: number;
   cantidadPedidos: number;
 }
+
 export interface VentaCredito {
   id: string;
   cliente_id: string;
+  usuario_id: string;
+  vendedor_nombre?: string;
   tipo_venta: string;
   estado: string;
   total: number;
@@ -27,8 +30,7 @@ export interface VentaCredito {
   numero_recibo?: number;
   created_at?: string;
   tipo_comprobante?: string;
-  placa_camion?: string;
-  descripcion_camion?: string;
+  saldo_pendiente?: number;
   ven_clientes?: {
     nombre: string;
     nit: string;
@@ -41,6 +43,15 @@ export interface VentaCredito {
     subtotal: number;
     inv_productos?: {
       nombre: string;
+      medida: string;
     };
+  }>;
+  ven_pagos?: Array<{
+    id: string;
+    monto: number;
+    usuario_id: string;
+    cajero_nombre?: string;
+    created_at?: string;
+    fecha_pago?: string;
   }>;
 }

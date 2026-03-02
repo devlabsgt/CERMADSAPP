@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
-  Receipt,
-  CheckCircle2,
-  Calendar,
   CreditCard,
   Loader2,
-  Truck,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Printer,
+  MessageCircle,
 } from "lucide-react";
 import { ClienteCredito, VentaCredito } from "../lib/zod";
 import { useProcesarPago } from "../lib/hooks";
@@ -22,57 +23,77 @@ interface DetalleCreditoModalProps {
   ventasCliente: VentaCredito[];
 }
 
+interface PagoHistorial {
+  id: string;
+  monto: number;
+  cajero_nombre?: string;
+  created_at?: string;
+  fecha_pago?: string;
+}
+
 export default function DetalleCreditoModal({
   isOpen,
   onClose,
   cliente,
   ventasCliente,
 }: DetalleCreditoModalProps) {
-  const [selectedPagos, setSelectedPagos] = useState<string[]>([]);
+  const [abonos, setAbonos] = useState<Record<string, number>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [whatsappVentaId, setWhatsappVentaId] = useState<string | null>(null);
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+
   const { mutateAsync: procesarPago } = useProcesarPago();
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedPagos([]);
+      setAbonos({});
+      setExpandedId(null);
+      setWhatsappVentaId(null);
+      setWhatsappPhone("");
     }
   }, [isOpen]);
 
   if (!cliente) return null;
 
-  const togglePago = (id: string) => {
-    setSelectedPagos((prev) =>
-      prev.includes(id) ? prev.filter((pId) => pId !== id) : [...prev, id],
-    );
+  const handleMontoChange = (id: string, value: string, max: number) => {
+    const numValue = parseFloat(value) || 0;
+    const montoValido = Math.min(Math.max(0, numValue), max);
+
+    setAbonos((prev) => {
+      const nuevosAbonos = { ...prev };
+      if (montoValido > 0) {
+        nuevosAbonos[id] = montoValido;
+      } else {
+        delete nuevosAbonos[id];
+      }
+      return nuevosAbonos;
+    });
   };
 
-  const seleccionarTodos = () => {
-    if (selectedPagos.length === ventasCliente.length) {
-      setSelectedPagos([]);
-    } else {
-      setSelectedPagos(ventasCliente.map((v) => v.id));
-    }
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
-  const totalSeleccionado = ventasCliente
-    .filter((v) => selectedPagos.includes(v.id))
-    .reduce((sum, v) => sum + Number(v.total), 0);
+  const totalSeleccionado = Object.values(abonos).reduce(
+    (sum, monto) => sum + monto,
+    0,
+  );
 
   const handlePagarSeleccionados = async () => {
-    if (selectedPagos.length === 0) return;
+    const pagosValidos = Object.entries(abonos).filter(
+      ([, monto]) => monto > 0,
+    );
+    if (pagosValidos.length === 0) return;
     setIsProcessing(true);
-
     try {
-      for (const id of selectedPagos) {
-        const venta = ventasCliente.find((v) => v.id === id);
-        if (venta) {
-          await procesarPago({
-            venta_id: id,
-            monto: Number(venta.total),
-            metodo_pago: "Efectivo",
-            observaciones: "Abono a cuenta por cobrar",
-          });
-        }
+      for (const [id, monto] of pagosValidos) {
+        await procesarPago({
+          venta_id: id,
+          monto: monto,
+          metodo_pago: "Efectivo",
+          observaciones: "Abono a cuenta por cobrar",
+        });
       }
       onClose();
     } catch (error) {
@@ -82,214 +103,398 @@ export default function DetalleCreditoModal({
     }
   };
 
+  const imprimirRecibo = (pago: PagoHistorial, venta: VentaCredito) => {
+    const event = new CustomEvent("imprimir-pago-directo", {
+      detail: { pago, venta, cliente },
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 md:p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-4xl bg-background rounded-2xl md:rounded-4xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border"
-          >
-            <div className="flex items-center justify-between p-4 md:p-6 border-b bg-muted/30 shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="bg-red-500/10 p-3 rounded-xl text-red-500">
-                  <CreditCard className="size-6 md:size-8" />
-                </div>
-                <div>
-                  <h2 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-tight">
-                    Detalle de Cuenta
-                  </h2>
-                  <p className="text-xs md:text-sm text-muted-foreground font-bold uppercase tracking-widest">
-                    {cliente.nombre} | NIT: {cliente.nit}
+      {isOpen && cliente && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed inset-0 z-9999 flex flex-col bg-background/95 backdrop-blur-md"
+        >
+          <div className="flex items-center justify-between p-4 md:p-6 border-b bg-card shrink-0 shadow-sm">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="bg-red-500/10 p-2 md:p-3 rounded-xl text-red-500">
+                <CreditCard className="size-6 md:size-8" />
+              </div>
+              <div>
+                <h2 className="text-lg md:text-2xl font-black text-foreground uppercase tracking-tight">
+                  Detalle de Cuenta
+                </h2>
+                <div className="flex flex-col mt-0.5">
+                  <p className="text-xs md:text-sm text-muted-foreground font-bold tracking-widest uppercase">
+                    {cliente.nombre}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground font-bold tracking-widest uppercase">
+                    NIT: {cliente.nit}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-muted rounded-full transition-colors cursor-pointer"
-                disabled={isProcessing}
-              >
-                <X className="size-6 text-muted-foreground hover:text-foreground" />
-              </button>
             </div>
+            <button
+              onClick={onClose}
+              className="p-3 hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors cursor-pointer"
+              disabled={isProcessing}
+            >
+              <X className="size-6" />
+            </button>
+          </div>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted/5">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold uppercase tracking-widest text-sm text-muted-foreground">
-                  Documentos Pendientes
-                </h3>
-                <button
-                  onClick={seleccionarTodos}
-                  className="text-xs font-bold text-red-500 hover:text-red-400 uppercase transition-colors cursor-pointer"
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 max-w-7xl mx-auto w-full">
+            {ventasCliente.map((venta) => {
+              const saldoPendiente =
+                venta.saldo_pendiente ?? Number(venta.total);
+              const montoActual = abonos[venta.id] || "";
+              const isExpanded = expandedId === venta.id;
+
+              return (
+                <div
+                  key={venta.id}
+                  className={cn(
+                    "bg-card border-2 rounded-2xl overflow-hidden transition-all duration-300",
+                    isExpanded
+                      ? "border-red-500/50 shadow-lg ring-4 ring-red-500/10"
+                      : "hover:border-foreground/30",
+                  )}
                 >
-                  {selectedPagos.length === ventasCliente.length
-                    ? "Desmarcar Todos"
-                    : "Seleccionar Todos"}
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {ventasCliente.map((venta) => {
-                  const isSelected = selectedPagos.includes(venta.id);
-                  return (
-                    <div
-                      key={venta.id}
-                      className={cn(
-                        "relative overflow-hidden rounded-2xl border-2 transition-all",
-                        isSelected
-                          ? "border-red-500 ring-4 ring-red-500/10"
-                          : "border-border/60 hover:border-red-500/40",
-                      )}
-                    >
-                      <div
-                        onClick={() => togglePago(venta.id)}
-                        className="p-4 bg-card cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={cn(
-                              "size-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
-                              isSelected
-                                ? "border-red-500 bg-red-500 text-white"
-                                : "border-muted-foreground/30 bg-background",
-                            )}
-                          >
-                            {isSelected && <CheckCircle2 className="size-4" />}
-                          </div>
-                          <div>
-                            <p className="font-bold text-base md:text-lg flex items-center gap-2 text-foreground">
-                              <Receipt className="size-4 md:size-5 text-muted-foreground" />
-                              Venta #
-                              {venta.numero_recibo
-                                ? String(venta.numero_recibo).padStart(5, "0")
-                                : venta.id.slice(0, 6).toUpperCase()}
-                            </p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1 font-medium">
-                              <Calendar className="size-3" />
-                              {venta.created_at
-                                ? new Date(venta.created_at).toLocaleDateString(
-                                    "es-GT",
-                                  )
-                                : venta.fecha_entrega
-                                  ? new Date(
-                                      venta.fecha_entrega,
-                                    ).toLocaleDateString("es-GT")
-                                  : "Sin fecha"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center pl-10 sm:pl-0">
-                          <p className="font-black text-xl text-foreground">
-                            Q
-                            {Number(venta.total).toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </p>
-                        </div>
+                  <div
+                    onClick={() => toggleExpand(venta.id)}
+                    className="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer group"
+                  >
+                    <div className="flex-1 w-full">
+                      <div className="flex justify-between items-center w-full">
+                        <p className="font-bold text-lg md:text-xl text-foreground">
+                          Venta #
+                          {venta.numero_recibo
+                            ? String(venta.numero_recibo).padStart(5, "0")
+                            : venta.id.slice(0, 6).toUpperCase()}
+                        </p>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          {venta.created_at
+                            ? new Date(venta.created_at).toLocaleDateString(
+                                "es-GT",
+                              )
+                            : "Sin fecha"}
+                        </p>
                       </div>
+                      <p className="text-sm text-muted-foreground font-medium mt-1">
+                        Vendió: {venta.vendedor_nombre}
+                      </p>
+                    </div>
 
-                      {venta.ven_detalle && venta.ven_detalle.length > 0 && (
-                        <div className="bg-muted/30 border-t p-4 flex flex-col gap-3">
-                          {venta.ven_detalle.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex justify-between items-center text-sm"
-                            >
-                              <div className="flex gap-3 items-start">
-                                <span className="font-mono bg-background px-2 py-0.5 rounded-md text-xs font-bold border text-muted-foreground shrink-0">
-                                  {item.cantidad}
-                                </span>
-                                <div>
-                                  <p className="font-semibold text-foreground leading-none">
-                                    {item.inv_productos?.nombre || "Producto"}
-                                  </p>
-                                  <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-                                    Q
-                                    {Number(item.precio_aplicado || 0).toFixed(
-                                      2,
-                                    )}{" "}
-                                    c/u
-                                  </p>
+                    <div className="flex items-center justify-between md:justify-end gap-4 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 mt-2 md:mt-0">
+                      <div className="text-left md:text-right">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          Original
+                        </p>
+                        <p className="font-bold text-sm text-muted-foreground">
+                          Q
+                          {Number(venta.total).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[11px] font-bold text-red-500 uppercase tracking-widest">
+                          Pendiente
+                        </p>
+                        <p className="font-black text-xl md:text-2xl text-foreground">
+                          Q
+                          {saldoPendiente.toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                      <div className="text-muted-foreground hidden md:block">
+                        {isExpanded ? (
+                          <ChevronUp className="size-6" />
+                        ) : (
+                          <ChevronDown className="size-6" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="border-t-2 bg-muted/10 overflow-hidden"
+                      >
+                        <div className="p-5 md:p-8 flex flex-col lg:flex-row gap-8">
+                          <div className="flex-1 space-y-5">
+                            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+                              <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                                <History className="size-5" />
+                                Historial de Pagos
+                              </div>
+                              {venta.ven_pagos &&
+                                venta.ven_pagos.length > 0 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (whatsappVentaId === venta.id) {
+                                        setWhatsappVentaId(null);
+                                      } else {
+                                        setWhatsappVentaId(venta.id);
+                                        setWhatsappPhone(
+                                          cliente?.telefono &&
+                                            cliente.telefono !== "N/A"
+                                            ? cliente.telefono
+                                            : "",
+                                        );
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all cursor-pointer flex items-center gap-2"
+                                  >
+                                    <MessageCircle className="size-4" />
+                                    <span className="text-xs font-bold uppercase tracking-widest">
+                                      Enviar Abonos
+                                    </span>
+                                  </button>
+                                )}
+                            </div>
+
+                            <AnimatePresence>
+                              {whatsappVentaId === venta.id && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="mb-4 flex items-center gap-2 overflow-hidden"
+                                >
+                                  <input
+                                    type="text"
+                                    value={whatsappPhone}
+                                    onChange={(e) =>
+                                      setWhatsappPhone(e.target.value)
+                                    }
+                                    placeholder="Número sin código"
+                                    className="flex-1 bg-muted/50 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (whatsappPhone) {
+                                        const formatParts = (dStr?: string) => {
+                                          if (!dStr) return { d: "N/A", t: "" };
+                                          const d = new Date(dStr);
+                                          const diaSemana = d
+                                            .toLocaleDateString("es-GT", {
+                                              weekday: "short",
+                                            })
+                                            .replace(".", "");
+                                          const fechaManual = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear().toString().slice(-2)}`;
+                                          const horaManual =
+                                            d.toLocaleTimeString("es-GT", {
+                                              hour: "numeric",
+                                              minute: "2-digit",
+                                              hour12: true,
+                                            });
+                                          return {
+                                            d: `${diaSemana}, ${fechaManual}`,
+                                            t: horaManual,
+                                          };
+                                        };
+
+                                        const numV = venta.numero_recibo
+                                          ? String(
+                                              venta.numero_recibo,
+                                            ).padStart(5, "0")
+                                          : venta.id.slice(0, 6).toUpperCase();
+                                        const fV = formatParts(
+                                          venta.created_at,
+                                        );
+                                        const totV = Number(
+                                          venta.total,
+                                        ).toLocaleString("en-US", {
+                                          minimumFractionDigits: 2,
+                                        });
+                                        const salV = Number(
+                                          venta.saldo_pendiente ?? 0,
+                                        ).toLocaleString("en-US", {
+                                          minimumFractionDigits: 2,
+                                        });
+
+                                        let texto = `👤 *${cliente?.nombre}*%0A%0A*${fV.d}, ${fV.t}*%0A\`\`\`Venta #${numV}: Q${totV}\`\`\`%0A%0A%0A📝 *Abonos:*%0A%0A`;
+
+                                        venta.ven_pagos?.forEach(
+                                          (pago: PagoHistorial) => {
+                                            const fP = formatParts(
+                                              pago.created_at,
+                                            );
+                                            const idA = pago.id
+                                              .slice(0, 6)
+                                              .toUpperCase();
+                                            const monA = Number(
+                                              pago.monto,
+                                            ).toLocaleString("en-US", {
+                                              minimumFractionDigits: 2,
+                                            });
+                                            texto += `*${fP.d}, ${fP.t}*%0A\`\`\`Abono #${idA}: Q${monA}\`\`\`%0A%0A`;
+                                          },
+                                        );
+
+                                        texto += `🧾 *Saldo: Q${salV}*%0A%0A%0A*La Arada*%0A*_¡Gracias por sus pagos!_*`;
+
+                                        window.open(
+                                          `https://wa.me/502${whatsappPhone.replace(/\s+/g, "")}?text=${texto}`,
+                                          "_blank",
+                                        );
+                                        setWhatsappVentaId(null);
+                                      }
+                                    }}
+                                    className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600"
+                                  >
+                                    Enviar
+                                  </button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {venta.ven_pagos && venta.ven_pagos.length > 0 ? (
+                              <div className="space-y-3">
+                                {venta.ven_pagos.map(
+                                  (pago: PagoHistorial, idx: number) => (
+                                    <div
+                                      key={idx}
+                                      className="flex flex-col text-sm bg-background border-2 border-border/50 p-4 rounded-xl shadow-sm hover:border-emerald-500/30"
+                                    >
+                                      <div className="flex justify-between items-start w-full mb-1">
+                                        <span className="font-bold text-foreground text-base">
+                                          Abono: #
+                                          {pago.id.slice(0, 6).toUpperCase()}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground font-medium text-right mt-1">
+                                          {pago.created_at
+                                            ? new Date(
+                                                pago.created_at,
+                                              ).toLocaleString("es-GT")
+                                            : "N/A"}
+                                        </span>
+                                      </div>
+                                      <span className="text-sm text-muted-foreground font-medium w-full pb-3">
+                                        Cobró: {pago.cajero_nombre}
+                                      </span>
+                                      <div className="grid grid-cols-2 items-center w-full pt-3 border-t border-border/50">
+                                        <span className="font-black text-emerald-600 text-lg">
+                                          + Q
+                                          {Number(pago.monto).toLocaleString(
+                                            "en-US",
+                                            { minimumFractionDigits: 2 },
+                                          )}
+                                        </span>
+                                        <div className="flex justify-end">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              imprimirRecibo(pago, venta);
+                                            }}
+                                            className="p-2.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg transition-all cursor-pointer"
+                                          >
+                                            <Printer className="size-5" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ),
+                                )}
+                              </div>
+                            ) : (
+                              <div className="p-8 text-center border-2 border-dashed rounded-2xl text-muted-foreground text-sm font-bold uppercase opacity-60">
+                                No hay abonos registrados.
+                              </div>
+                            )}
+                          </div>
+                          {saldoPendiente > 0 && (
+                            <div className="w-full lg:w-96 shrink-0">
+                              <div className="bg-background border-2 border-border/60 rounded-3xl p-6 shadow-md">
+                                <label className="text-sm font-black text-foreground uppercase mb-4 block text-center">
+                                  Ingresar Abono
+                                </label>
+                                <div className="flex items-center gap-3 bg-muted/30 border-2 rounded-2xl px-5 py-4 focus-within:ring-2 focus-within:ring-red-500/20">
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    max={saldoPendiente}
+                                    step="0.01"
+                                    value={montoActual}
+                                    onKeyDown={(e) => {
+                                      if (
+                                        e.key === "-" ||
+                                        e.key === "e" ||
+                                        e.key === "E" ||
+                                        e.key === "+"
+                                      )
+                                        e.preventDefault();
+                                    }}
+                                    onChange={(e) =>
+                                      handleMontoChange(
+                                        venta.id,
+                                        e.target.value,
+                                        saldoPendiente,
+                                      )
+                                    }
+                                    placeholder="0.00"
+                                    className="w-full bg-transparent outline-none font-black text-4xl text-center"
+                                  />
                                 </div>
                               </div>
-                              <span className="font-bold text-foreground">
-                                Q{Number(item.subtotal || 0).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
-
-                          {(venta.placa_camion || venta.descripcion_camion) && (
-                            <div className="mt-2 pt-3 border-t border-dashed border-border/60 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                              <Truck className="size-3.5" />
-                              <span>
-                                {venta.placa_camion}{" "}
-                                {venta.descripcion_camion
-                                  ? `- ${venta.descripcion_camion}`
-                                  : ""}
-                              </span>
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
 
-            <div className="p-4 md:p-6 border-t bg-card shrink-0 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">
-                  Total a Pagar
-                </p>
-                <p className="text-3xl font-black text-foreground tracking-tighter">
-                  Q
-                  {totalSeleccionado.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-              </div>
-              <div className="flex w-full sm:w-auto gap-3">
-                <button
-                  onClick={onClose}
-                  disabled={isProcessing}
-                  className="flex-1 sm:flex-none px-6 py-3 rounded-xl border font-bold hover:bg-muted transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handlePagarSeleccionados}
-                  disabled={selectedPagos.length === 0 || isProcessing}
-                  className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="size-5 animate-spin" />
-                      Procesando
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="size-5" />
-                      Pagar Seleccionados
-                    </>
-                  )}
-                </button>
-              </div>
+          <div className="p-6 border-t bg-card shrink-0 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-6">
+            <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
+              <span className="text-sm font-bold text-muted-foreground uppercase">
+                Total a abonar:
+              </span>
+              <span className="text-2xl font-black text-foreground">
+                Q{" "}
+                {totalSeleccionado.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
             </div>
-          </motion.div>
-        </div>
+            <div className="flex w-full sm:w-auto gap-4">
+              <button
+                onClick={onClose}
+                className="flex-1 sm:flex-none px-8 py-4 rounded-2xl border-2 font-bold cursor-pointer text-sm uppercase"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePagarSeleccionados}
+                disabled={totalSeleccionado <= 0 || isProcessing}
+                className="flex-1 sm:flex-none px-8 py-4 rounded-2xl bg-red-500 text-white font-black hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-3 cursor-pointer shadow-xl shadow-red-500/20 text-sm uppercase"
+              >
+                {isProcessing ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : (
+                  <>Registrar Pagos</>
+                )}
+              </button>
+            </div>
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
