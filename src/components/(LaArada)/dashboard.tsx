@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { cn } from "@/lib/utils";
-import { X, ChevronRight, ShieldAlert } from "lucide-react";
+import { ChevronRight, ShieldAlert } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -17,7 +17,6 @@ import {
 } from "recharts";
 import { getStockStats } from "./productos/lib/actions";
 import { getPendingOrdersCount, getVentas } from "./ventas/lib/actions";
-import Stats from "./ventas/components/stats";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 
 export default function DashboardLaArada() {
@@ -29,7 +28,6 @@ export default function DashboardLaArada() {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [ventas, setVentas] = useState<any[]>([]);
-  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const [stats, setStats] = useState({
     pendientes: 0,
     sinStock: 0,
@@ -323,7 +321,7 @@ export default function DashboardLaArada() {
           {canViewStats && (
             <motion.div
               id="stats-widget"
-              onClick={() => setIsStatsModalOpen(true)}
+              onClick={() => router.push("/cermadsa/laarada/estadisticas")}
               whileHover={{ scale: 1.01 }}
               className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40 p-6 md:p-8 shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-75 mb-12"
             >
@@ -470,57 +468,6 @@ export default function DashboardLaArada() {
           )}
         </motion.div>
       </div>
-
-      <AnimatePresence>
-        {isStatsModalOpen && (
-          <div className="fixed inset-0 z-9999 flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsStatsModalOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              id="stats-modal-header"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="relative w-full h-full bg-background shadow-2xl flex flex-col overflow-hidden border-0 rounded-none max-w-none"
-            >
-              <div className="flex items-center justify-between p-4 md:p-6 border-b bg-muted/30 shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="bg-purple-500/10 p-2 md:p-3 rounded-xl text-purple-600">
-                    <AnimatedIcon
-                      iconKey="cnbqxixv"
-                      target="#stats-modal-header"
-                      className="w-8 h-8 md:w-20 md:h-20"
-                    />
-                  </div>
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-tight">
-                      Estadísticas del mes
-                    </h2>
-                    <p className="text-xs md:text-sm text-muted-foreground font-medium">
-                      Análisis detallado de ventas y operaciones
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsStatsModalOpen(false)}
-                  className="p-3 hover:bg-muted rounded-full transition-colors cursor-pointer"
-                >
-                  <X className="size-6 text-muted-foreground hover:text-foreground" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
-                <Stats orders={ventas} />
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

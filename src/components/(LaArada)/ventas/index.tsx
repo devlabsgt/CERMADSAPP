@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import {
   Plus,
-  Search,
   ShoppingCart,
   LayoutGrid,
   List,
   Truck,
   ShieldAlert,
-  BarChart3,
+  Calculator,
 } from "lucide-react";
 import { useVentas } from "./lib/hooks";
 import SaleModal from "./modals/sale-modal";
@@ -17,10 +16,8 @@ import ReceiptModal from "./modals/receipt-modal";
 import StatusModal from "./modals/status-modal";
 import ListView from "./components/ventas-view";
 import MonitorView from "./components/monitor-view";
-import Stats from "./components/stats";
 import ContabilidadView from "./components/contabilidad-view";
 import { useUser } from "@/components/(base)/providers/UserProvider";
-import { Calculator } from "lucide-react";
 
 export default function ListadoVentas() {
   const { data: ventas = [], isLoading } = useVentas();
@@ -37,9 +34,8 @@ export default function ListadoVentas() {
   const canManage = allowedRoles.includes(effectiveRole);
 
   const [viewMode, setViewMode] = useState<
-    "ventas" | "monitor" | "estadisticas" | "contabilidad"
+    "ventas" | "monitor" | "contabilidad"
   >("ventas");
-  const [searchTerm, setSearchTerm] = useState("");
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
   const [statusVenta, setStatusVenta] = useState<any>(null);
@@ -51,16 +47,7 @@ export default function ListadoVentas() {
     }
   }, [user, canManage, effectiveRole]);
 
-  const filteredSearchVentas = ventas.filter((v: any) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      (v.ven_clientes?.nombre || "").toLowerCase().includes(term) ||
-      String(v.numero_recibo || "").includes(term)
-    );
-  });
-
-  const sortedOrders = [...filteredSearchVentas].sort(
+  const sortedOrders = [...ventas].sort(
     (a: any, b: any) =>
       new Date(b.fecha_entrega || 0).getTime() -
       new Date(a.fecha_entrega || 0).getTime(),
@@ -88,8 +75,6 @@ export default function ListadoVentas() {
               <ShoppingCart className="size-5 md:size-6 text-orange-500" />
             ) : viewMode === "monitor" ? (
               <Truck className="size-5 md:size-6 text-blue-500" />
-            ) : viewMode === "estadisticas" ? (
-              <BarChart3 className="size-5 md:size-6 text-purple-500" />
             ) : (
               <Calculator className="size-5 md:size-6 text-emerald-500" />
             )}
@@ -97,18 +82,14 @@ export default function ListadoVentas() {
               ? "Control de Ventas"
               : viewMode === "monitor"
                 ? "Monitor de Despacho"
-                : viewMode === "estadisticas"
-                  ? "Estadísticas de Ventas"
-                  : "Módulo Contable"}
+                : "Módulo Contable"}
           </h1>
           <p className="text-muted-foreground text-xs md:text-sm flex items-center gap-2">
             {viewMode === "ventas"
               ? "Gestión de ventas y despachos."
               : viewMode === "monitor"
                 ? "Despachos pendientes de entrega en tiempo real."
-                : viewMode === "estadisticas"
-                  ? "Resumen general de ventas por día y mes."
-                  : "Exportación y cálculo de impuestos (IVA/ISR)."}
+                : "Exportación y cálculo de impuestos (IVA/ISR)."}
             {realRole === "super" && effectiveRole !== "super" && (
               <span className="text-[10px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded border border-red-500/20 whitespace-nowrap">
                 (Simulando: {effectiveRole})
@@ -162,16 +143,6 @@ export default function ListadoVentas() {
                   <List className="size-4" /> Ventas
                 </button>
                 <button
-                  onClick={() => setViewMode("estadisticas")}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    viewMode === "estadisticas"
-                      ? "bg-background shadow-sm text-purple-500"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <BarChart3 className="size-4" /> Estadísticas
-                </button>
-                <button
                   onClick={() => setViewMode("contabilidad")}
                   className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     viewMode === "contabilidad"
@@ -200,17 +171,6 @@ export default function ListadoVentas() {
 
       {viewMode === "ventas" && canManage && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full sm:w-64 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-9.5">
-            <Search className="size-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar despacho o recibo..."
-              className="bg-transparent outline-none text-xs md:text-sm w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
           <ListView
             items={sortedOrders}
             isLoading={isLoading}
@@ -231,10 +191,6 @@ export default function ListadoVentas() {
           formatDate={formatDate}
           onStatusClick={setStatusVenta}
         />
-      )}
-
-      {viewMode === "estadisticas" && canManage && (
-        <Stats orders={sortedOrders} />
       )}
 
       {viewMode === "contabilidad" && canManage && (

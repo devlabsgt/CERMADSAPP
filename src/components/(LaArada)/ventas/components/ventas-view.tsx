@@ -1,4 +1,10 @@
-import { Calendar, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Calendar,
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 
@@ -74,6 +80,7 @@ export default function ListView({
   const [filtroAnio, setFiltroAnio] = useState<number>(current.year);
   const [filtroMes, setFiltroMes] = useState<number>(current.month);
   const [filtroSemana, setFiltroSemana] = useState<number | "Todas">("Todas");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -99,9 +106,26 @@ export default function ListView({
 
       const matchFecha = matchAnio && matchMes && matchSemana;
 
-      return matchEstado && (estadoActual === "pendiente" || matchFecha);
+      let matchSearch = true;
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const clienteNombre = (order.ven_clientes?.nombre || "").toLowerCase();
+        const clienteNit = (order.ven_clientes?.nit || "").toLowerCase();
+        const numRecibo = String(order.numero_recibo || "").toLowerCase();
+
+        matchSearch =
+          clienteNombre.includes(term) ||
+          clienteNit.includes(term) ||
+          numRecibo.includes(term);
+      }
+
+      return (
+        matchEstado &&
+        matchSearch &&
+        (estadoActual === "pendiente" || matchFecha)
+      );
     });
-  }, [data, filtroEstado, filtroAnio, filtroMes, filtroSemana]);
+  }, [data, filtroEstado, filtroAnio, filtroMes, filtroSemana, searchTerm]);
 
   const counts = useMemo(() => {
     const c = { Pendiente: 0, Entregado: 0, Anulado: 0 };
@@ -135,7 +159,14 @@ export default function ListView({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filtroEstado, filtroAnio, filtroMes, filtroSemana, itemsPerPage]);
+  }, [
+    filtroEstado,
+    filtroAnio,
+    filtroMes,
+    filtroSemana,
+    itemsPerPage,
+    searchTerm,
+  ]);
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
   const paginatedItems = filteredItems.slice(
@@ -173,6 +204,25 @@ export default function ListView({
   return (
     <div className="flex flex-col md:flex-row gap-6 items-start animate-in fade-in duration-300">
       <aside className="w-full md:w-[15%] shrink-0 flex flex-col gap-6 sticky md:top-6 text-xs">
+        <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-muted-foreground uppercase text-xs">
+            Buscar
+          </h3>
+
+          {data.length > 0 && (
+            <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-10">
+              <Search className="size-4 text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                placeholder="Cliente, recibo o NIT"
+                className="bg-transparent outline-none text-xs w-full font-medium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-col gap-3">
           <h3 className="font-bold text-muted-foreground uppercase text-xs">
             Fecha de entrega
@@ -257,49 +307,6 @@ export default function ListView({
       </aside>
 
       <div className="flex-1 w-full flex flex-col gap-3">
-        {filteredItems.length > 0 && (
-          <div className="flex flex-row items-center justify-between p-3 md:p-4 bg-card border rounded-xl mt-2 gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="bg-background border rounded-lg px-2 py-1.5 text-xs font-bold outline-none cursor-pointer"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={100}>Todos</option>
-              </select>
-              <span className="text-xs font-bold text-muted-foreground uppercase hidden md:inline">
-                | Total: {filteredItems.length}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 md:gap-3">
-              <span className="text-xs font-bold text-muted-foreground uppercase">
-                {currentPage} / {totalPages}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 border rounded-md hover:bg-muted disabled:opacity-50 cursor-pointer transition-colors"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="p-2 border rounded-md hover:bg-muted disabled:opacity-50 cursor-pointer transition-colors"
-                >
-                  <ChevronRight className="size-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {groupedOrders.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl bg-card font-bold uppercase">
             Sin pedidos registrados
@@ -466,6 +473,46 @@ export default function ListView({
               </div>
             );
           })
+        )}
+
+        {filteredItems.length > 0 && (
+          <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end mt-4">
+            <div className="flex items-center gap-2">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="bg-background border rounded-lg px-2 py-1.5 text-xs font-bold outline-none cursor-pointer h-9"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={100}>Todos</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className="text-xs font-bold text-muted-foreground uppercase">
+                {currentPage} / {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 md:p-2 border rounded-md hover:bg-muted disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 md:p-2 border rounded-md hover:bg-muted disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
