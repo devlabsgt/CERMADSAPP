@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 import { logout } from "@/app/actions";
@@ -20,11 +21,9 @@ import {
   Home,
   Package,
   ClipboardList,
-  History,
   CreditCard,
   Truck,
   ReceiptText,
-  PieChart,
   User,
   ShieldAlert,
 } from "lucide-react";
@@ -35,6 +34,52 @@ import { AuroraText } from "@/components/ui/aurora-text";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import VerPerfil from "@/components/(base)/(users)/profile/VerPerfil";
 
+const LA_ARADA_LINKS = [
+  {
+    href: "/cermadsa/laarada/ventas",
+    label: "Ventas y Despachos",
+    icon: ClipboardList,
+    roles: ["super", "admin", "contabilidad", "ventas", "user"],
+  },
+  {
+    href: "/cermadsa/laarada/clientes",
+    label: "Clientes",
+    icon: Users,
+    roles: ["super", "admin", "contabilidad", "ventas"],
+  },
+  {
+    href: "/cermadsa/laarada/creditos",
+    label: "Créditos",
+    icon: CreditCard,
+    roles: ["super", "admin", "contabilidad", "ventas"],
+  },
+  {
+    href: "/cermadsa/laarada/contabilidad",
+    label: "Contabilidad",
+    icon: ReceiptText,
+    roles: ["super", "admin", "contabilidad"],
+  },
+  {
+    href: "/cermadsa/laarada/productos",
+    label: "Productos",
+    icon: Package,
+    roles: ["super", "admin", "contabilidad", "ventas"],
+  },
+  {
+    href: "/cermadsa/laarada/proveedores",
+    label: "Proveedores",
+    icon: Truck,
+    roles: ["super", "admin", "contabilidad"],
+  },
+];
+
+const PUBLIC_LINKS = [
+  { href: "#inventory", label: "Inventory", icon: CarFront },
+  { href: "#services", label: "Services", icon: LayoutGrid },
+  { href: "#about", label: "About Us", icon: Info },
+  { href: "#contact", label: "Contact", icon: PhoneCall },
+];
+
 export default function Header() {
   const user = useUser();
   const [isOpen, setIsOpen] = useState(false);
@@ -43,7 +88,7 @@ export default function Header() {
 
   const metadata = user?.user_metadata || {};
   const realRole = metadata.rol || user?.role || "user";
-  const [effectiveRole, setEffectiveRole] = useState(realRole);
+  const [effectiveRole, setEffectiveRole] = useState<string>(realRole);
 
   useEffect(() => {
     if (realRole) setEffectiveRole(realRole);
@@ -52,58 +97,6 @@ export default function Header() {
   const username =
     metadata.username || user?.email?.split("@")[0] || "Invitado";
   const canManageProfiles = ["super", "admin", "rrhh"].includes(effectiveRole);
-
-  const adminLinks = [
-    {
-      href: "/cermadsa",
-      label: "Inicio",
-      icon: Home,
-      roles: ["super", "admin", "contabilidad", "ventas", "user"],
-    },
-    {
-      href: "/cermadsa/laarada/ventas",
-      label: "Ventas y Despachos",
-      icon: ClipboardList,
-      roles: ["super", "admin", "contabilidad", "ventas", "user"],
-    },
-    {
-      href: "/cermadsa/laarada/clientes",
-      label: "Clientes",
-      icon: Users,
-      roles: ["super", "admin", "contabilidad", "ventas"],
-    },
-    {
-      href: "/cermadsa/laarada/creditos",
-      label: "Créditos",
-      icon: CreditCard,
-      roles: ["super", "admin", "contabilidad", "ventas"],
-    },
-    {
-      href: "/cermadsa/laarada/contabilidad",
-      label: "Contabilidad",
-      icon: ReceiptText,
-      roles: ["super", "admin", "contabilidad"],
-    },
-    {
-      href: "/cermadsa/laarada/productos",
-      label: "Productos",
-      icon: Package,
-      roles: ["super", "admin", "contabilidad", "ventas"],
-    },
-    {
-      href: "/cermadsa/laarada/proveedores",
-      label: "Proveedores",
-      icon: Truck,
-      roles: ["super", "admin", "contabilidad"],
-    },
-  ];
-
-  const publicLinks = [
-    { href: "#inventory", label: "Inventory", icon: CarFront },
-    { href: "#services", label: "Services", icon: LayoutGrid },
-    { href: "#about", label: "About Us", icon: Info },
-    { href: "#contact", label: "Contact", icon: PhoneCall },
-  ];
 
   const handleLogout = async () => {
     setIsOpen(false);
@@ -123,12 +116,12 @@ export default function Header() {
     if (result.isConfirmed) await logout();
   };
 
-  const visibleAdminLinks = adminLinks.filter((link) =>
+  const isLaAradaPath = pathname?.startsWith("/cermadsa/laarada");
+  const isCermadsaPath = pathname === "/cermadsa";
+
+  const visibleLaAradaLinks = LA_ARADA_LINKS.filter((link) =>
     link.roles.includes(effectiveRole),
   );
-  const showMiddleSection =
-    (pathname?.startsWith("/cermadsa/laarada") || pathname === "/cermadsa") &&
-    user;
 
   return (
     <>
@@ -248,56 +241,109 @@ export default function Header() {
               </div>
 
               <nav className="flex flex-col mb-8 pl-2 w-full gap-6">
-                {visibleAdminLinks.length > 0 && (
-                  <Link
-                    href="/cermadsa"
-                    onClick={() => setIsOpen(false)}
-                    className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
-                  >
-                    <Home className="size-5" />
-                    <span>Inicio</span>
-                    <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                  </Link>
+                {isCermadsaPath && (
+                  <>
+                    <Link
+                      href="/cermadsa"
+                      onClick={() => setIsOpen(false)}
+                      className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
+                    >
+                      <Home className="size-5" />
+                      <span>Inicio</span>
+                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                    </Link>
+
+                    <Link
+                      href="/cermadsa/laarada"
+                      onClick={() => setIsOpen(false)}
+                      className="w-fit text-base font-semibold text-muted-foreground hover:text-orange-500 flex items-center gap-3 py-1 relative group"
+                    >
+                      <div className="relative size-6 shrink-0">
+                        <Image
+                          src="/logos/LaArada.png"
+                          alt="Logo La Arada"
+                          fill
+                          className="object-contain"
+                          priority
+                        />
+                      </div>
+                      <span>La Arada</span>
+                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-orange-500 transition-all group-hover:w-full" />
+                    </Link>
+                  </>
                 )}
 
-                {showMiddleSection && visibleAdminLinks.length > 1 && (
-                  <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
-                    {visibleAdminLinks.slice(1).map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        onClick={() => setIsOpen(false)}
-                        className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
-                      >
-                        <link.icon className="size-5" />
-                        <span>{link.label}</span>
-                        <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                      </Link>
-                    ))}
-                  </div>
+                {isLaAradaPath && (
+                  <>
+                    <Link
+                      href="/cermadsa/laarada"
+                      onClick={() => setIsOpen(false)}
+                      className="w-fit text-base font-semibold text-muted-foreground hover:text-orange-500 flex items-center gap-3 py-1 relative group"
+                    >
+                      <div className="relative size-6 shrink-0">
+                        <Image
+                          src="/logos/LaArada.png"
+                          alt="Logo La Arada"
+                          fill
+                          className="object-contain"
+                          priority
+                        />
+                      </div>
+                      <span>Inicio La Arada</span>
+                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-orange-500 transition-all group-hover:w-full" />
+                    </Link>
+                    <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
+                      {visibleLaAradaLinks.map((link) => (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setIsOpen(false)}
+                          className="w-fit text-base font-semibold text-muted-foreground hover:text-[#3b82f6]! flex items-center gap-3 py-1 relative group"
+                        >
+                          <link.icon
+                            className="size-5"
+                            style={{ color: "#3b82f6" }}
+                          />
+                          <span>{link.label}</span>
+                          <span
+                            className="absolute -bottom-1 left-0 h-0.5 w-0 transition-all group-hover:w-full"
+                            style={{ backgroundColor: "#3b82f6" }}
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  </>
                 )}
-
                 <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
                   <button
                     onClick={() => {
                       setIsOpen(false);
                       setIsProfileOpen(true);
                     }}
-                    className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group cursor-pointer"
+                    className="w-fit text-base md:text-3xl font-semibold text-muted-foreground hover:text-[#a855f7]! flex items-center gap-3 py-1 relative group cursor-pointer"
                   >
-                    <User className="size-5" />
+                    <User
+                      className="size-5 md:size-"
+                      style={{ color: "#a855f7" }}
+                    />
                     <span>Mi Perfil</span>
-                    <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                    <span
+                      className="absolute -bottom-1 left-0 h-0.5 w-0 transition-all group-hover:w-full"
+                      style={{ backgroundColor: "#a855f7" }}
+                    />
                   </button>
                   {canManageProfiles && (
                     <Link
                       href="/cermadsa/usuarios"
                       onClick={() => setIsOpen(false)}
-                      className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
+                      className="w-fit text-base font-semibold text-muted-foreground hover:text-[#a855f7]! flex items-center gap-3 py-1 relative group"
                     >
-                      <Users className="size-5" />
+                      <Users className="size-5" style={{ color: "#a855f7" }} />
                       <span>Usuarios</span>
-                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+                      <span
+                        className="absolute -bottom-1 left-0 h-0.5 w-0 transition-all group-hover:w-full"
+                        style={{ backgroundColor: "#a855f7" }}
+                      />
                     </Link>
                   )}
                 </div>
@@ -316,7 +362,7 @@ export default function Header() {
                 </Link>
               </div>
               <nav className="flex flex-col gap-6 mb-8 pl-2">
-                {publicLinks.map((link) => (
+                {PUBLIC_LINKS.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
