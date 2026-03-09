@@ -4,7 +4,7 @@ import Script from "next/script";
 import * as motion from "framer-motion/client";
 import "./globals.css";
 import { ThemeProvider } from "@/components/(base)/theme/provider";
-import Header from "@/components/(base)/layout/Header";
+import Header from "@/components/(base)/layout/header";
 import { createClient } from "@/utils/supabase/server";
 import Providers from "@/components/(base)/providers/QueryProviders";
 import { UserProvider } from "@/components/(base)/providers/UserProvider";
