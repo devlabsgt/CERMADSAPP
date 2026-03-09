@@ -4,7 +4,7 @@ import Script from "next/script";
 import * as motion from "framer-motion/client";
 import "./globals.css";
 import { ThemeProvider } from "@/components/(base)/theme/provider";
-import Header from "@/components/(base)/layout/header";
+import Header from "@/components/(base)/layout/Header";
 import { createClient } from "@/utils/supabase/server";
 import Providers from "@/components/(base)/providers/QueryProviders";
 import { UserProvider } from "@/components/(base)/providers/UserProvider";
@@ -32,17 +32,6 @@ export const metadata: Metadata = {
   title: "CERMAD S.A. - Construcción y Materiales",
   description:
     "Soluciones integrales en construcción y suministro de materiales de alta calidad.",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "CERMAD",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  icons: {
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export default async function RootLayout({
@@ -70,7 +59,9 @@ export default async function RootLayout({
           >
             <UserProvider user={user}>
               <Header />
-              <main className="flex-1 w-full pb-20">{children}</main>
+              <main className="flex-1 w-full flex flex-col relative">
+                {children}
+              </main>
               <footer className="w-full py-5 border-t border-border/20 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-md relative z-10">
                 <div className="max-w-400 mx-auto px-6">
                   <motion.div

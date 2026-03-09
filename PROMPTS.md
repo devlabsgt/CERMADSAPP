@@ -21,3 +21,6 @@ Reglas obligatorias:
     Tipado estricto en el 100% del código.
 
     Entrégame el código completo de cada archivo para copiar y pegar."
+
+
+   lo que quiero es que luego de iniciar sesion tire un modal, preguntando si desea registrar y que se haga el proceso, es posible que algunos dispositivos no soporten entonces que se pueda saltar y marcar la casilla no volver a preguntar
