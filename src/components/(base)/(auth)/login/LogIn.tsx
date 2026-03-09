@@ -5,59 +5,56 @@ import { login, type ActionState } from "./actions";
 import { getPasskeyOptions, verifyPasskey } from "./passkeys/passkeys-actions";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { MagicCard } from "@/components/ui/magic-card";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuroraText } from "@/components/ui/aurora-text";
 import { DotPattern } from "@/components/ui/dot-pattern";
-
-const Label = ({
-  className,
-  ...props
-}: React.LabelHTMLAttributes<HTMLLabelElement>) => (
-  <label
-    {...props}
-    className={cn(
-      "text-sm font-semibold leading-none text-foreground/70",
-      className,
-    )}
-  />
-);
-
-const Input = ({
-  className,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) => (
-  <input
-    {...props}
-    className={cn(
-      "flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all",
-      className,
-    )}
-  />
-);
-
-const Button = ({
-  className,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-  <button
-    {...props}
-    className={cn(
-      "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-primary text-primary-foreground hover:opacity-90 h-11 px-8 cursor-pointer active:scale-[0.98] disabled:opacity-50",
-      className,
-    )}
-  />
-);
+import { useTheme } from "next-themes";
+import Swal from "sweetalert2";
 
 export default function LogIn() {
   const [mounted, setMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [isPasskeyPending, setIsPasskeyPending] = useState<boolean>(false);
+  const { theme } = useTheme();
+
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     login,
     null,
   );
+
+  const showError = (message: string) => {
+    const isDark = theme === "dark";
+    Swal.fire({
+      icon: "error",
+      title: "Error de Acceso",
+      text: message,
+      background: isDark ? "#09090b" : "#ffffff",
+      color: isDark ? "#ffffff" : "#09090b",
+      confirmButtonColor: "#ea580c",
+      customClass: {
+        popup: cn(
+          "rounded-3xl border backdrop-blur-xl transition-colors duration-300",
+          isDark ? "border-white/10 shadow-2xl" : "border-black/10 shadow-lg",
+        ),
+      },
+    });
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (state?.success) {
+      window.location.href = "/cermadsa";
+    } else if (state?.message === "DEVICE_PENDING") {
+      window.location.href = "/esperando-acceso";
+    } else if (state?.message) {
+      showError(state.message);
+    }
+  }, [state, theme]);
 
   const handlePasskeyLogin = async () => {
     setIsPasskeyPending(true);
@@ -68,21 +65,26 @@ export default function LogIn() {
 
       if (verification.success) {
         window.location.href = "/cermadsa";
-      } else {
-        alert(`Fallo en Passkey: ${verification.error}`);
+      } else if (verification.error === "DEVICE_PENDING") {
+        window.location.href = "/esperando-acceso";
+      } else if (verification.error) {
+        showError(verification.error);
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Error desconocido";
-      alert(`Error inesperado: ${errorMessage}`);
+    } catch (error: any) {
+      const msg = error.message || "";
+      if (
+        error.name === "NotAllowedError" ||
+        error.name === "AbortError" ||
+        msg.includes("timed out") ||
+        msg.includes("not allowed")
+      ) {
+        return;
+      }
+      showError("Fallo en la biometría o tiempo excedido.");
     } finally {
       setIsPasskeyPending(false);
     }
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) return null;
 
@@ -107,13 +109,16 @@ export default function LogIn() {
 
           <form action={formAction} className="p-10 space-y-6">
             <div className="grid gap-2">
-              <Label htmlFor="username">Usuario</Label>
-              <Input
+              <label className="text-sm font-semibold text-foreground/70">
+                Usuario
+              </label>
+              <input
                 id="username"
                 type="text"
                 placeholder="Tu usuario"
                 required
                 value={username}
+                className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-ring"
                 onChange={(e) =>
                   setUsername(e.target.value.toLowerCase().trim())
                 }
@@ -126,15 +131,16 @@ export default function LogIn() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <label className="text-sm font-semibold text-foreground/70">
+                Contraseña
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required
-                  className="pr-10"
-                  defaultValue={state?.fields?.password}
+                  className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm pr-10"
                   placeholder="••••••••"
                 />
                 <button
@@ -152,36 +158,22 @@ export default function LogIn() {
             </div>
 
             <div className="pt-2 space-y-3">
-              <Button
+              <button
                 type="submit"
-                className="w-full h-12 text-base"
+                className="w-full h-12 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-primary text-primary-foreground hover:opacity-90 cursor-pointer active:scale-95 disabled:opacity-50"
                 disabled={isPending || isPasskeyPending}
               >
                 {isPending ? "Verificando..." : "Iniciar Sesión"}
-              </Button>
+              </button>
 
-              <Button
+              <button
                 type="button"
                 onClick={handlePasskeyLogin}
-                className="w-full h-12 text-base bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border"
+                className="w-full h-12 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border cursor-pointer active:scale-95 disabled:opacity-50"
                 disabled={isPending || isPasskeyPending}
               >
                 {isPasskeyPending ? "Esperando biometría..." : "Usar Passkey"}
-              </Button>
-
-              {state?.message && (
-                <div
-                  className={cn(
-                    "mt-4 flex items-center gap-2 rounded-lg border p-3 text-[11px] animate-in fade-in slide-in-from-top-1",
-                    state.errorType === "invalid"
-                      ? "border-destructive/20 bg-destructive/10 text-destructive"
-                      : "border-orange-500/20 bg-orange-500/10 text-orange-600",
-                  )}
-                >
-                  <AlertCircle className="size-4 shrink-0" />
-                  <p>{state.message}</p>
-                </div>
-              )}
+              </button>
             </div>
           </form>
         </MagicCard>

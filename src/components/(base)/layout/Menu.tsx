@@ -101,6 +101,8 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
       const options = await getRegistrationOptions();
       const regResp = await startRegistration({ optionsJSON: options });
       const verification = await verifyRegistration(regResp);
+      const isDark = document.documentElement.classList.contains("dark");
+
       if (verification.success) {
         setHasPasskey(true);
         Swal.fire({
@@ -109,16 +111,22 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
           icon: "success",
           timer: 2000,
           showConfirmButton: false,
-          background: document.documentElement.classList.contains("dark")
-            ? "#09090b"
-            : "#ffffff",
-          color: document.documentElement.classList.contains("dark")
-            ? "#ffffff"
-            : "#000000",
+          background: isDark ? "#09090b" : "#ffffff",
+          color: isDark ? "#ffffff" : "#000000",
+        });
+      } else {
+        Swal.fire({
+          title: "Error de Base de Datos",
+          text: verification.error || "Fallo desconocido al guardar.",
+          icon: "error",
+          background: isDark ? "#09090b" : "#ffffff",
+          color: isDark ? "#ffffff" : "#000000",
         });
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
+        alert("Error de hardware/navegador: " + error.message);
+      }
     } finally {
       setIsRegistering(false);
     }

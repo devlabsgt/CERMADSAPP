@@ -14,15 +14,73 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/cermadsa";
-    return NextResponse.redirect(url);
+  if (user) {
+    if (pathname === "/esperando-acceso") {
+      const metadata = user.user_metadata || {};
+      const realRole = (metadata.rol || user.role || "user") as string;
+
+      if (["super", "admin", "rrhh"].includes(realRole)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/cermadsa";
+        return NextResponse.redirect(url);
+      }
+
+      const userAgent = request.headers.get("user-agent") || "Desconocido";
+
+      const { data: device } = await supabase
+        .from("authorized_devices")
+        .select("is_authorized")
+        .eq("user_id", user.id)
+        .eq("browser_fingerprint", userAgent)
+        .single();
+
+      if (device && device.is_authorized) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/cermadsa";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    if (pathname === "/login") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/cermadsa";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/cermadsa")) {
+      const metadata = user.user_metadata || {};
+      const realRole = (metadata.rol || user.role || "user") as string;
+
+      if (
+        pathname.startsWith("/cermadsa/admin") &&
+        !["super", "admin", "rrhh"].includes(realRole)
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/sin-acceso";
+        return NextResponse.redirect(url);
+      }
+
+      if (!["super", "admin"].includes(realRole)) {
+        const userAgent = request.headers.get("user-agent") || "Desconocido";
+
+        const { data: device } = await supabase
+          .from("authorized_devices")
+          .select("is_authorized")
+          .eq("user_id", user.id)
+          .eq("browser_fingerprint", userAgent)
+          .single();
+
+        if (!device || !device.is_authorized) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/esperando-acceso";
+          return NextResponse.redirect(url);
+        }
+      }
+    }
   }
 
   return response;
 }
-
 // Exclusion de cobros por archivos estáticos
 export const config = {
   matcher: [
