@@ -86,7 +86,7 @@ export const AnimatedThemeToggler = ({
       ref={buttonRef}
       onClick={toggleTheme}
       className={cn(
-        "flex items-center justify-center rounded-xl p-2.5 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer transition-all active:scale-95",
+        "flex items-center justify-center text-foreground hover:text-foreground/80 cursor-pointer transition-all active:scale-95 h-9 md:h-10 w-9 md:w-10 relative z-50",
         className,
       )}
       {...props}
@@ -94,7 +94,9 @@ export const AnimatedThemeToggler = ({
       <AnimatedIcon
         iconKey="glypeims"
         target="#theme-toggler-btn"
-        className="size-6 md:size-10"
+        className="size-6 md:size-8"
+        primaryColor="#eab308"
+        secondaryColor="#0ea5e9"
       />
     </button>
   );

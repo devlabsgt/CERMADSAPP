@@ -17,13 +17,13 @@ export default function Header() {
   return (
     <>
       <header className="w-full bg-background transition-all border-b border-border/40 md:border-none relative z-40">
-        <div className="mx-auto flex h-24 items-center justify-between px-8 md:px-12 gap-4">
+        <div className="mx-auto flex h-14 md:h-16 items-center justify-between px-4 md:px-8 gap-4">
           <div className="flex items-center">
             <Link
               href={user ? "/cermadsa" : "/"}
               className="flex items-center shrink-0"
             >
-              <span className="font-serif font-bold text-2xl md:text-4xl tracking-tight">
+              <span className="font-serif font-bold text-lg md:text-2xl tracking-tight">
                 <AuroraText
                   colors={["#ff0000", "#dc2626", "#991b1b", "#ef4444"]}
                 >
@@ -45,7 +45,7 @@ export default function Header() {
             <button
               id="refresh-btn"
               onClick={() => window.location.reload()}
-              className="flex items-center justify-center rounded-xl p-2.5 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer h-11 md:h-14 w-11 md:w-14"
+              className="flex items-center justify-center text-foreground hover:text-foreground/80 cursor-pointer transition-all active:scale-95"
             >
               <AnimatedIcon
                 iconKey="diemywzy"
@@ -55,12 +55,12 @@ export default function Header() {
             </button>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center justify-center rounded-xl p-2.5 md:p-3 text-foreground hover:bg-muted/50 border border-border/50 cursor-pointer transition-all active:scale-95 h-11 md:h-14 w-11 md:w-14"
+              className="flex items-center justify-center text-foreground hover:text-foreground/80 cursor-pointer transition-all active:scale-95 ml-2"
             >
               {isOpen ? (
-                <X className="h-6 w-6 md:h-8 md:w-8" />
+                <X className="size-6 md:size-8" />
               ) : (
-                <MenuIcon className="h-6 w-6 md:h-8 md:w-8" />
+                <MenuIcon className="size-6 md:size-8" />
               )}
             </button>
           </div>

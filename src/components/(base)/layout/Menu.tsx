@@ -255,6 +255,7 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
                   <AnimatedIcon
                     iconKey="oskfhomm"
                     className="size-20 text-white"
+                    target="#passkey-btn"
                   />
                 </div>
                 <div className="flex flex-col text-left">
