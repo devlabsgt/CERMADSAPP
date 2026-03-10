@@ -77,7 +77,7 @@ interface MenuProps {
 
 export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [hasPasskey, setHasPasskey] = useState<boolean>(true);
+  const [passkeyCount, setPasskeyCount] = useState<number>(0);
   const [isRegistering, setIsRegistering] = useState(false);
   const pathname = usePathname();
 
@@ -88,7 +88,7 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
       .from("passkeys")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
-    setHasPasskey(Number(count) > 0);
+    setPasskeyCount(Number(count));
   }, [user]);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
       const isDark = document.documentElement.classList.contains("dark");
 
       if (verification.success) {
-        setHasPasskey(true);
+        setPasskeyCount((prev) => prev + 1);
         Swal.fire({
           title: "¡Éxito!",
           text: "Passkey registrada correctamente",
@@ -233,29 +233,57 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
                 </button>
               </div>
 
-              {!hasPasskey && (
-                <button
-                  id="passkey-btn"
-                  onClick={handleRegisterPasskey}
-                  disabled={isRegistering}
-                  className="mb-8 w-full flex items-center gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all group animate-pulse cursor-pointer"
+              <button
+                id="passkey-btn"
+                onClick={handleRegisterPasskey}
+                disabled={isRegistering}
+                className={cn(
+                  "mb-8 w-full flex items-center gap-4 p-4 rounded-2xl transition-all group cursor-pointer",
+                  passkeyCount === 0
+                    ? "bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 dark:bg-amber-500/15 dark:border-amber-500/30 dark:hover:bg-amber-500/25 shadow-sm"
+                    : "bg-muted/50 border border-border/50 hover:bg-muted",
+                )}
+              >
+                <div
+                  className={cn(
+                    "relative shrink-0 rounded-xl p-2 shadow-lg",
+                    passkeyCount === 0
+                      ? "shadow-amber-500/40 dark:shadow-amber-500/20"
+                      : "shadow-transparent",
+                  )}
                 >
-                  <div className="relative shrink-0  rounded-xl p-2 shadow-lg shadow-amber-500/40">
-                    <AnimatedIcon
-                      iconKey="oskfhomm"
-                      className="size-20 text-white"
-                    />
-                  </div>
-                  <div className="flex flex-col text-left">
-                    <span className="text-sm font-bold text-amber-700 dark:text-amber-500">
-                      Activar Seguridad
-                    </span>
-                    <span className="text-[10px] text-amber-600/80 font-medium leading-tight">
-                      Usa tu huella, rostro o pin de tu dispositivo para entrar
-                    </span>
-                  </div>
-                </button>
-              )}
+                  <AnimatedIcon
+                    iconKey="oskfhomm"
+                    className="size-20 text-white"
+                  />
+                </div>
+                <div className="flex flex-col text-left">
+                  <span
+                    className={cn(
+                      "text-sm font-bold",
+                      passkeyCount === 0
+                        ? "text-amber-700 dark:text-amber-400"
+                        : "text-foreground",
+                    )}
+                  >
+                    {passkeyCount === 0
+                      ? "Activar Seguridad"
+                      : "Agregar dispositivo seguro"}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[10px] font-medium leading-tight",
+                      passkeyCount === 0
+                        ? "text-amber-600/80 dark:text-amber-400/80"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {passkeyCount === 0
+                      ? "Usa tu huella, rostro o pin de tu dispositivo para entrar"
+                      : "Registra otro dispositivo para iniciar sesión rápidamente"}
+                  </span>
+                </div>
+              </button>
 
               <nav className="flex flex-col mb-8 pl-2 w-full gap-6">
                 {isCermadsaPath && (

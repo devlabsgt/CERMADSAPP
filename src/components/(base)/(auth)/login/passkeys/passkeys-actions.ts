@@ -167,7 +167,7 @@ export async function verifyPasskey(
       .single();
 
     if (passkeyError || !passkey)
-      return { success: false, error: "Dispositivo no reconocido" };
+      return { success: false, error: "Dispositivo no reconocido, inicie sesión con su usuario y luego registre su dispositivo" };
 
     const verification: VerifiedAuthenticationResponse =
       await verifyAuthenticationResponse({
