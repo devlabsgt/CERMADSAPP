@@ -217,6 +217,16 @@ export async function verifyPasskey(
           .single();
 
         if (!device) {
+          // Check device limit (max 3 per user)
+          const { count } = await supabaseAdmin
+            .from("authorized_devices")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userData.user.id);
+
+          if ((count ?? 0) >= 3) {
+            return { success: false, error: "DEVICE_LIMIT" };
+          }
+
           await supabaseAdmin.from("authorized_devices").insert({
             user_id: userData.user.id,
             device_name: userAgent,

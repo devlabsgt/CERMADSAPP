@@ -50,6 +50,8 @@ export default function LogIn() {
   useEffect(() => {
     if (state?.success) {
       window.location.href = "/cermadsa";
+    } else if (state?.message === "DEVICE_LIMIT") {
+      window.location.href = "/esperando-acceso?reason=limit";
     } else if (state?.message === "DEVICE_PENDING") {
       window.location.href = "/esperando-acceso";
     } else if (state?.message) {
@@ -66,6 +68,8 @@ export default function LogIn() {
 
       if (verification.success) {
         window.location.href = "/cermadsa";
+      } else if (verification.error === "DEVICE_LIMIT") {
+        window.location.href = "/esperando-acceso?reason=limit";
       } else if (verification.error === "DEVICE_PENDING") {
         window.location.href = "/esperando-acceso";
       } else if (verification.error) {
@@ -112,7 +116,7 @@ export default function LogIn() {
             action={formAction}
             className={cn(
               "transition-all duration-500 flex flex-col",
-              showCredentials ? "gap-6 p-10" : "gap-0 px-10 pb-10 pt-0"
+              showCredentials ? "gap-6 p-10" : "gap-0 px-10 pb-10 pt-8"
             )}
           >
             <div

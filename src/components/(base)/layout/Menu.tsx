@@ -17,14 +17,19 @@ import {
   CreditCard,
   Truck,
   ReceiptText,
-  ShieldAlert,
   ChevronDown,
   Trash2,
+  Fingerprint,
+  ScanFace,
+  KeyRound,
+  User as UserIcon,
+  ShieldAlert,
 } from "lucide-react";
+import VerPerfil from "@/components/(base)/(users)/profile/VerPerfil";
 import { cn } from "@/lib/utils";
 import PassKeysModal from "@/components/(base)/layout/modals/PassKeysModal";
-import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { createClient } from "@/utils/supabase/client";
+import { getPendingDevicesCount } from "@/components/(LaArada)/admin/lib/actions";
 
 const LA_ARADA_LINKS = [
   {
@@ -73,11 +78,14 @@ interface MenuProps {
 
 export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
   const [isPasskeysModalOpen, setIsPasskeysModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [perfilOpen, setPerfilOpen] = useState(false);
   const pathname = usePathname();
 
   const metadata = user?.user_metadata || {};
   const realRole = metadata.rol || user?.role || "user";
   const [effectiveRole, setEffectiveRole] = useState<string>(realRole);
+  const [pendingDevices, setPendingDevices] = useState(0);
 
   useEffect(() => {
     if (realRole) setEffectiveRole(realRole);
@@ -85,6 +93,13 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
 
   const username =
     metadata.username || user?.email?.split("@")[0] || "Invitado";
+  const canManage = ["super", "admin", "rrhh"].includes(effectiveRole);
+
+  useEffect(() => {
+    if (canManage) {
+      getPendingDevicesCount().then((c) => setPendingDevices(c ?? 0));
+    }
+  }, [canManage]);
 
   const handleLogout = async () => {
     setIsOpen(false);
@@ -172,7 +187,7 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
                 </div>
               )}
 
-              <div className="mb-8">
+              <div className="mb-4">
                 <button
                   onClick={handleLogout}
                   className="flex items-center justify-between rounded-xl bg-primary text-primary-foreground px-5 py-3 text-sm font-bold w-full hover:opacity-90 transition-all cursor-pointer"
@@ -182,105 +197,75 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
                 </button>
               </div>
 
-              <button
-                id="passkey-btn"
-                onClick={() => setIsPasskeysModalOpen(true)}
-                className="mb-8 w-full flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer shadow-sm group"
-              >
-                <div className="flex items-center gap-4 text-left">
-                  <div className="relative shrink-0 rounded-xl bg-background p-2 shadow-sm border border-border/50 group-hover:scale-105 transition-transform duration-300">
-                    <AnimatedIcon
-                      iconKey="oskfhomm"
-                      className="size-8 text-foreground"
-                      target="#passkey-btn"
-                    />
+              {/* ── ADMINISTRACIÓN ── */}
+              {canManage && (
+                <div className="mb-3 rounded-2xl border border-border/50 overflow-hidden">
+                  <Link
+                    href="/cermadsa/admin"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ShieldAlert className="size-4 text-amber-500" />
+                      <span className="text-sm font-bold">Administración</span>
+                    </div>
+                    {pendingDevices > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-white animate-pulse">
+                        {pendingDevices}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              )}
+
+              {/* ── GRUPO: MI PERFIL ── */}
+              <div className="mb-3 rounded-2xl border border-border/50 overflow-hidden">
+                {/* Header */}
+                <button
+                  onClick={() => setPerfilOpen((o) => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <UserIcon className="size-4" style={{ color: "#a855f7" }} />
+                    <span className="text-sm font-bold">Mi Perfil</span>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-foreground">
-                      Ingreso Seguro
-                    </span>
-                    <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
-                      Administrar dispositivos
-                    </span>
+                  <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-300", perfilOpen && "rotate-180")} />
+                </button>
+                {/* Items */}
+                <div className={cn("grid transition-all duration-300", perfilOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                  <div className="overflow-hidden">
+                    <div className="border-t border-border/40 divide-y divide-border/30">
+                      {/* Mi Perfil */}
+                      <button
+                        onClick={() => { setIsProfileOpen(true); setIsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors cursor-pointer text-left"
+                      >
+                        <UserIcon className="size-4 shrink-0" style={{ color: "#a855f7" }} />
+                        <div>
+                          <p className="text-sm font-semibold">Mi Perfil</p>
+                          <p className="text-[10px] text-muted-foreground">Ver y editar perfil</p>
+                        </div>
+                      </button>
+                      {/* Ingreso Seguro */}
+                      <button
+                        onClick={() => { setIsPasskeysModalOpen(true); setIsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors cursor-pointer text-left"
+                      >
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Fingerprint className="size-4 text-muted-foreground" />
+                          <ScanFace className="size-4 text-muted-foreground" />
+                          <KeyRound className="size-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">Ingreso Seguro</p>
+                          <p className="text-[10px] text-muted-foreground">Administrar dispositivos</p>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </button>
+              </div>
 
-              <nav className="flex flex-col mb-8 pl-2 w-full gap-6">
-                {isCermadsaPath && (
-                  <>
-                    <Link
-                      href="/cermadsa"
-                      onClick={() => setIsOpen(false)}
-                      className="w-fit text-base font-semibold text-muted-foreground hover:text-foreground flex items-center gap-3 py-1 relative group"
-                    >
-                      <Home className="size-5" />
-                      <span>Inicio</span>
-                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-                    </Link>
-
-                    <Link
-                      href="/cermadsa/laarada"
-                      onClick={() => setIsOpen(false)}
-                      className="w-fit text-base font-semibold text-muted-foreground hover:text-orange-500 flex items-center gap-3 py-1 relative group"
-                    >
-                      <div className="relative size-6 shrink-0">
-                        <Image
-                          src="/logos/LaArada.png"
-                          alt="Logo La Arada"
-                          fill
-                          className="object-contain"
-                          priority
-                        />
-                      </div>
-                      <span>La Arada</span>
-                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-orange-500 transition-all group-hover:w-full" />
-                    </Link>
-                  </>
-                )}
-
-                {isLaAradaPath && (
-                  <>
-                    <Link
-                      href="/cermadsa/laarada"
-                      onClick={() => setIsOpen(false)}
-                      className="w-fit text-base font-semibold text-muted-foreground hover:text-orange-500 flex items-center gap-3 py-1 relative group"
-                    >
-                      <div className="relative size-6 shrink-0">
-                        <Image
-                          src="/logos/LaArada.png"
-                          alt="Logo La Arada"
-                          fill
-                          className="object-contain"
-                          priority
-                        />
-                      </div>
-                      <span>Inicio La Arada</span>
-                      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-orange-500 transition-all group-hover:w-full" />
-                    </Link>
-                    <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
-                      {visibleLaAradaLinks.map((link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => setIsOpen(false)}
-                          className="w-fit text-base font-semibold text-muted-foreground hover:text-[#3b82f6]! flex items-center gap-3 py-1 relative group"
-                        >
-                          <link.icon
-                            className="size-5"
-                            style={{ color: "#3b82f6" }}
-                          />
-                          <span>{link.label}</span>
-                          <span
-                            className="absolute -bottom-1 left-0 h-0.5 w-0 transition-all group-hover:w-full"
-                            style={{ backgroundColor: "#3b82f6" }}
-                          />
-                        </Link>
-                      ))}
-                    </div>
-                  </>
-                )}
-                </nav>
             </>
           ) : (
             <div className="mb-8 mt-2">
@@ -301,6 +286,12 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
         isOpen={isPasskeysModalOpen}
         onClose={() => setIsPasskeysModalOpen(false)}
         user={user}
+      />
+
+      <VerPerfil
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        userId={user?.id || null}
       />
     </>
   );

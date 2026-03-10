@@ -48,6 +48,16 @@ export async function login(
       .single();
 
     if (!device) {
+      // Check device limit (max 3 per user)
+      const { count } = await supabase
+        .from("authorized_devices")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      if ((count ?? 0) >= 3) {
+        return { success: false, message: "DEVICE_LIMIT", errorType: "device" };
+      }
+
       await supabase.from("authorized_devices").insert({
         user_id: user.id,
         device_name: userAgent,
