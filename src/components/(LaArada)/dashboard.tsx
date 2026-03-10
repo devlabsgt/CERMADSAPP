@@ -242,230 +242,230 @@ export default function DashboardLaArada() {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[120px] md:auto-rows-[200px]"
         >
-          {visibleMenuItems.map((item) => (
-            <motion.div
-              key={item.id}
-              id={`card-${item.id}`}
-              layoutId={item.id}
-              onClick={() => handleNavigation(item.id, item.href)}
-              whileHover={{ scale: 1.02, y: -5 }}
-              animate={
-                activeId === item.id
-                  ? {
-                      scale: [1, 1.05, 1],
-                      transition: { duration: 1.5, ease: "easeInOut" },
-                    }
-                  : { scale: 1, y: 0 }
-              }
-              className={cn(
-                "group relative overflow-hidden rounded-4xl md:rounded-[2.5rem] border flex flex-row items-center justify-start gap-4 md:gap-6 p-4 md:p-6 shadow-sm cursor-pointer",
-                item.color,
-                item.className,
-              )}
-            >
-              {item.id === "ventas" && stats.pendientes > 0 && (
-                <div className="absolute top-3 right-3 md:top-5 md:right-5 flex items-center bg-amber-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md z-20 animate-pulse ring-2 ring-white dark:ring-black">
-                  Pendientes de entrega: {stats.pendientes}
-                </div>
-              )}
-
-              {item.id === "productos" &&
-                (stats.sinStock > 0 || stats.stockBajo > 0) && (
-                  <div className="absolute top-3 right-3 md:top-5 md:right-5 flex flex-col gap-1.5 z-20 items-end">
-                    {stats.sinStock > 0 && (
-                      <div className="flex items-center bg-red-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md animate-pulse ring-2 ring-white dark:ring-black">
-                        Sin stock: {stats.sinStock}
-                      </div>
-                    )}
-                    {stats.stockBajo > 0 && (
-                      <div className="flex items-center bg-orange-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md ring-2 ring-white dark:ring-black">
-                        Stock bajo: {stats.stockBajo}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              <div className="relative z-10 shrink-0">
-                <div
+              {visibleMenuItems.map((item) => (
+                <motion.div
+                  key={item.id}
+                  id={`card-${item.id}`}
+                  layoutId={item.id}
+                  onClick={() => handleNavigation(item.id, item.href)}
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  animate={
+                    activeId === item.id
+                      ? {
+                          scale: [1, 1.05, 1],
+                          transition: { duration: 1.5, ease: "easeInOut" },
+                        }
+                      : { scale: 1, y: 0 }
+                  }
                   className={cn(
-                    "p-2 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
-                    item.id === "ventas" && !canViewContabilidad && "md:p-5",
+                    "group relative overflow-hidden rounded-4xl md:rounded-[2.5rem] border flex flex-row items-center justify-start gap-4 md:gap-6 p-4 md:p-6 shadow-sm cursor-pointer",
+                    item.color,
+                    item.className,
                   )}
                 >
-                  <AnimatedIcon
-                    iconKey={item.iconKey}
-                    target={`#card-${item.id}`}
-                    className={cn(
-                      "w-8 h-8 md:w-20 md:h-20",
-                      item.id === "ventas" &&
-                        !canViewContabilidad &&
-                        "md:w-24 md:h-24",
+                  {item.id === "ventas" && stats.pendientes > 0 && (
+                    <div className="absolute top-3 right-3 md:top-5 md:right-5 flex items-center bg-amber-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md z-20 animate-pulse ring-2 ring-white dark:ring-black">
+                      Pendientes de entrega: {stats.pendientes}
+                    </div>
+                  )}
+
+                  {item.id === "productos" &&
+                    (stats.sinStock > 0 || stats.stockBajo > 0) && (
+                      <div className="absolute top-3 right-3 md:top-5 md:right-5 flex flex-col gap-1.5 z-20 items-end">
+                        {stats.sinStock > 0 && (
+                          <div className="flex items-center bg-red-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md animate-pulse ring-2 ring-white dark:ring-black">
+                            Sin stock: {stats.sinStock}
+                          </div>
+                        )}
+                        {stats.stockBajo > 0 && (
+                          <div className="flex items-center bg-orange-500 text-white px-3 py-1 text-[10px] md:text-xs font-bold rounded-full shadow-md ring-2 ring-white dark:ring-black">
+                            Stock bajo: {stats.stockBajo}
+                          </div>
+                        )}
+                      </div>
                     )}
-                  />
-                </div>
-              </div>
 
-              <div className="flex flex-col space-y-0 md:space-y-1 relative z-10">
-                <h3 className="text-base md:text-xl font-bold tracking-tight text-foreground transition-colors">
-                  {item.label}
-                </h3>
-                <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-1 font-medium italic">
-                  {item.desc}
-                </p>
-              </div>
+                  <div className="relative z-10 shrink-0">
+                    <div
+                      className={cn(
+                        "p-2 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
+                        item.id === "ventas" && !canViewContabilidad && "md:p-5",
+                      )}
+                    >
+                      <AnimatedIcon
+                        iconKey={item.iconKey}
+                        target={`#card-${item.id}`}
+                        className={cn(
+                          "w-8 h-8 md:w-20 md:h-20",
+                          item.id === "ventas" &&
+                            !canViewContabilidad &&
+                            "md:w-24 md:h-24",
+                        )}
+                      />
+                    </div>
+                  </div>
 
-              <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-current opacity-[0.03] dark:opacity-[0.05]" />
-            </motion.div>
-          ))}
+                  <div className="flex flex-col space-y-0 md:space-y-1 relative z-10">
+                    <h3 className="text-base md:text-xl font-bold tracking-tight text-foreground transition-colors">
+                      {item.label}
+                    </h3>
+                    <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-1 font-medium italic">
+                      {item.desc}
+                    </p>
+                  </div>
 
-          {canViewStats && (
-            <motion.div
-              id="stats-widget"
-              onClick={() => router.push("/cermadsa/laarada/estadisticas")}
-              whileHover={{ scale: 1.01 }}
-              className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40 p-6 md:p-8 shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-75 mb-12"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 md:w-[35%] w-full z-10">
-                <div className="p-4 bg-white text-purple-500 rounded-2xl md:rounded-3xl shadow-lg shadow-purple-500/10 shrink-0 group-hover:scale-105 transition-transform">
-                  <AnimatedIcon
-                    iconKey="qgwuoxgw"
-                    target="#stats-widget"
-                    className="w-8 h-8 md:w-20 md:h-20"
-                  />
-                </div>
-                <div className="space-y-1 w-full">
-                  <h3 className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-widest">
-                    Ingresos de este mes
-                  </h3>
-                  <p className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground tracking-tighter">
-                    Q
-                    {currentMonthData.totalMes.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
+                  <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-current opacity-[0.03] dark:opacity-[0.05]" />
+                </motion.div>
+              ))}
 
-                  <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-purple-500/20 w-full">
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">
-                        Promedio Diario
-                      </p>
-                      <p className="text-sm lg:text-base font-black text-foreground">
+              {canViewStats && (
+                <motion.div
+                  id="stats-widget"
+                  onClick={() => router.push("/cermadsa/laarada/estadisticas")}
+                  whileHover={{ scale: 1.01 }}
+                  className="md:col-span-4 rounded-4xl md:rounded-[2.5rem] border border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40 p-6 md:p-8 shadow-sm cursor-pointer relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 group min-h-75 mb-12"
+                >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 md:w-[35%] w-full z-10">
+                    <div className="p-4 bg-white text-purple-500 rounded-2xl md:rounded-3xl shadow-lg shadow-purple-500/10 shrink-0 group-hover:scale-105 transition-transform">
+                      <AnimatedIcon
+                        iconKey="qgwuoxgw"
+                        target="#stats-widget"
+                        className="w-8 h-8 md:w-20 md:h-20"
+                      />
+                    </div>
+                    <div className="space-y-1 w-full">
+                      <h3 className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-widest">
+                        Ingresos de este mes
+                      </h3>
+                      <p className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground tracking-tighter">
                         Q
-                        {currentMonthData.avgDaily.toLocaleString("en-US", {
+                        {currentMonthData.totalMes.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">
-                        Mejor Día
-                      </p>
-                      <p className="text-sm lg:text-base font-black text-foreground">
-                        Q
-                        {currentMonthData.bestDayTotal.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">
-                        Total Ventas
-                      </p>
-                      <p className="text-sm lg:text-base font-black text-foreground">
-                        {currentMonthData.totalOrders} ventas entregadas
-                      </p>
+
+                      <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-purple-500/20 w-full">
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Promedio Diario
+                          </p>
+                          <p className="text-sm lg:text-base font-black text-foreground">
+                            Q
+                            {currentMonthData.avgDaily.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Mejor Día
+                          </p>
+                          <p className="text-sm lg:text-base font-black text-foreground">
+                            Q
+                            {currentMonthData.bestDayTotal.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Total Ventas
+                          </p>
+                          <p className="text-sm lg:text-base font-black text-foreground">
+                            {currentMonthData.totalOrders} ventas entregadas
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-purple-500 hover:text-purple-400 transition-colors uppercase mt-3 pt-2">
+                        Ver estadísticas detalladas{" "}
+                        <ChevronRight className="size-4" />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-purple-500 hover:text-purple-400 transition-colors uppercase mt-3 pt-2">
-                    Ver estadísticas detalladas{" "}
-                    <ChevronRight className="size-4" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full md:w-[65%] h-50 md:h-full min-h-50 flex-1 z-10 mt-4 md:mt-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={currentMonthData.chartData}
-                    margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="colorMini"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
+                  <div className="w-full md:w-[65%] h-50 md:h-full min-h-50 flex-1 z-10 mt-4 md:mt-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={currentMonthData.chartData}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
                       >
-                        <stop
-                          offset="5%"
-                          stopColor="#9333ea"
-                          stopOpacity={0.4}
+                        <defs>
+                          <linearGradient
+                            id="colorMini"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="#9333ea"
+                              stopOpacity={0.4}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#9333ea"
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="name"
+                          fontSize={10}
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "#888", fontWeight: "bold" }}
                         />
-                        <stop
-                          offset="95%"
-                          stopColor="#9333ea"
-                          stopOpacity={0}
+                        <YAxis
+                          width={75}
+                          fontSize={10}
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "#888", fontWeight: "bold" }}
+                          tickFormatter={(val) =>
+                            `Q${val.toLocaleString("en-US", {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            })}`
+                          }
                         />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="name"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "#888", fontWeight: "bold" }}
-                    />
-                    <YAxis
-                      width={75}
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "#888", fontWeight: "bold" }}
-                      tickFormatter={(val) =>
-                        `Q${val.toLocaleString("en-US", {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        })}`
-                      }
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#000",
-                        border: "none",
-                        borderRadius: "8px",
-                        color: "#fff",
-                        fontSize: "10px",
-                        fontWeight: "bold",
-                      }}
-                      formatter={(value: number | undefined) => [
-                        `Q${Number(value || 0).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`,
-                        "Ingreso",
-                      ]}
-                      labelFormatter={(label) => `Día ${label}`}
-                      cursor={{ stroke: "#9333ea", strokeWidth: 1 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#9333ea"
-                      strokeWidth={3}
-                      fill="url(#colorMini)"
-                      isAnimationActive={true}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-current opacity-[0.03] dark:opacity-[0.05] z-0" />
-            </motion.div>
-          )}
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#000",
+                            border: "none",
+                            borderRadius: "8px",
+                            color: "#fff",
+                            fontSize: "10px",
+                            fontWeight: "bold",
+                          }}
+                          formatter={(value: number | undefined) => [
+                            `Q${Number(value || 0).toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`,
+                            "Ingreso",
+                          ]}
+                          labelFormatter={(label) => `Día ${label}`}
+                          cursor={{ stroke: "#9333ea", strokeWidth: 1 }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="total"
+                          stroke="#9333ea"
+                          strokeWidth={3}
+                          fill="url(#colorMini)"
+                          isAnimationActive={true}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-current opacity-[0.03] dark:opacity-[0.05] z-0" />
+                </motion.div>
+              )}
         </motion.div>
       </div>
     </>

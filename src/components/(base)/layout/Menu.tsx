@@ -17,18 +17,14 @@ import {
   CreditCard,
   Truck,
   ReceiptText,
-  User as UserIcon,
   ShieldAlert,
+  ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import VerPerfil from "@/components/(base)/(users)/profile/VerPerfil";
+import PassKeysModal from "@/components/(base)/layout/modals/PassKeysModal";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { createClient } from "@/utils/supabase/client";
-import {
-  getRegistrationOptions,
-  verifyRegistration,
-} from "@/components/(base)/(auth)/login/passkeys/passkeys-actions";
-import { startRegistration } from "@simplewebauthn/browser";
 
 const LA_ARADA_LINKS = [
   {
@@ -76,61 +72,8 @@ interface MenuProps {
 }
 
 export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [passkeyCount, setPasskeyCount] = useState<number>(0);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isPasskeysModalOpen, setIsPasskeysModalOpen] = useState(false);
   const pathname = usePathname();
-
-  const checkPasskeys = useCallback(async () => {
-    if (!user) return;
-    const supabase = createClient();
-    const { count } = await supabase
-      .from("passkeys")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    setPasskeyCount(Number(count));
-  }, [user]);
-
-  useEffect(() => {
-    if (isOpen) checkPasskeys();
-  }, [isOpen, checkPasskeys]);
-
-  const handleRegisterPasskey = async () => {
-    setIsRegistering(true);
-    try {
-      const options = await getRegistrationOptions();
-      const regResp = await startRegistration({ optionsJSON: options });
-      const verification = await verifyRegistration(regResp);
-      const isDark = document.documentElement.classList.contains("dark");
-
-      if (verification.success) {
-        setPasskeyCount((prev) => prev + 1);
-        Swal.fire({
-          title: "¡Éxito!",
-          text: "Passkey registrada correctamente",
-          icon: "success",
-          timer: 2000,
-          showConfirmButton: false,
-          background: isDark ? "#09090b" : "#ffffff",
-          color: isDark ? "#ffffff" : "#000000",
-        });
-      } else {
-        Swal.fire({
-          title: "Error de Base de Datos",
-          text: verification.error || "Fallo desconocido al guardar.",
-          icon: "error",
-          background: isDark ? "#09090b" : "#ffffff",
-          color: isDark ? "#ffffff" : "#000000",
-        });
-      }
-    } catch (error: any) {
-      if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
-        alert("Error de hardware/navegador: " + error.message);
-      }
-    } finally {
-      setIsRegistering(false);
-    }
-  };
 
   const metadata = user?.user_metadata || {};
   const realRole = metadata.rol || user?.role || "user";
@@ -142,7 +85,6 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
 
   const username =
     metadata.username || user?.email?.split("@")[0] || "Invitado";
-  const canManageProfiles = ["super", "admin", "rrhh"].includes(effectiveRole);
 
   const handleLogout = async () => {
     setIsOpen(false);
@@ -159,7 +101,14 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
       background: isDark ? "#09090b" : "#ffffff",
       color: isDark ? "#ffffff" : "#000000",
     });
-    if (result.isConfirmed) await logout();
+    
+    if (result.isConfirmed) {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      
+      // Forzar una recarga completa de la página saltándose la caché de Next.js
+      window.location.replace("/login");
+    }
   };
 
   const isLaAradaPath = pathname?.startsWith("/cermadsa/laarada");
@@ -235,54 +184,25 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
 
               <button
                 id="passkey-btn"
-                onClick={handleRegisterPasskey}
-                disabled={isRegistering}
-                className={cn(
-                  "mb-8 w-full flex items-center gap-4 p-4 rounded-2xl transition-all group cursor-pointer",
-                  passkeyCount === 0
-                    ? "bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 dark:bg-amber-500/15 dark:border-amber-500/30 dark:hover:bg-amber-500/25 shadow-sm"
-                    : "bg-muted/50 border border-border/50 hover:bg-muted",
-                )}
+                onClick={() => setIsPasskeysModalOpen(true)}
+                className="mb-8 w-full flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer shadow-sm group"
               >
-                <div
-                  className={cn(
-                    "relative shrink-0 rounded-xl p-2 shadow-lg",
-                    passkeyCount === 0
-                      ? "shadow-amber-500/40 dark:shadow-amber-500/20"
-                      : "shadow-transparent",
-                  )}
-                >
-                  <AnimatedIcon
-                    iconKey="oskfhomm"
-                    className="size-20 text-white"
-                    target="#passkey-btn"
-                  />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span
-                    className={cn(
-                      "text-sm font-bold",
-                      passkeyCount === 0
-                        ? "text-amber-700 dark:text-amber-400"
-                        : "text-foreground",
-                    )}
-                  >
-                    {passkeyCount === 0
-                      ? "Activar Seguridad"
-                      : "Agregar dispositivo seguro"}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[10px] font-medium leading-tight",
-                      passkeyCount === 0
-                        ? "text-amber-600/80 dark:text-amber-400/80"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {passkeyCount === 0
-                      ? "Usa tu huella, rostro o pin de tu dispositivo para entrar"
-                      : "Registra otro dispositivo para iniciar sesión rápidamente"}
-                  </span>
+                <div className="flex items-center gap-4 text-left">
+                  <div className="relative shrink-0 rounded-xl bg-background p-2 shadow-sm border border-border/50 group-hover:scale-105 transition-transform duration-300">
+                    <AnimatedIcon
+                      iconKey="oskfhomm"
+                      className="size-8 text-foreground"
+                      target="#passkey-btn"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-foreground">
+                      Ingreso Seguro
+                    </span>
+                    <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                      Administrar dispositivos
+                    </span>
+                  </div>
                 </div>
               </button>
 
@@ -360,37 +280,7 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
                     </div>
                   </>
                 )}
-                <div className="flex flex-col gap-6 pt-6 border-t border-border/90 w-full">
-                  <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      setIsProfileOpen(true);
-                    }}
-                    className="w-fit text-base font-semibold text-muted-foreground hover:text-[#a855f7]! flex items-center gap-3 py-1 relative group cursor-pointer"
-                  >
-                    <UserIcon className="size-5" style={{ color: "#a855f7" }} />
-                    <span>Mi Perfil</span>
-                    <span
-                      className="absolute -bottom-1 left-0 h-0.5 w-0 transition-all group-hover:w-full"
-                      style={{ backgroundColor: "#a855f7" }}
-                    />
-                  </button>
-                  {canManageProfiles && (
-                    <Link
-                      href="/cermadsa/usuarios"
-                      onClick={() => setIsOpen(false)}
-                      className="w-fit text-base font-semibold text-muted-foreground hover:text-[#a855f7]! flex items-center gap-3 py-1 relative group"
-                    >
-                      <Users className="size-5" style={{ color: "#a855f7" }} />
-                      <span>Usuarios</span>
-                      <span
-                        className="absolute -bottom-1 left-0 h-0.5 w-0 transition-all group-hover:w-full"
-                        style={{ backgroundColor: "#a855f7" }}
-                      />
-                    </Link>
-                  )}
-                </div>
-              </nav>
+                </nav>
             </>
           ) : (
             <div className="mb-8 mt-2">
@@ -407,10 +297,10 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
         </div>
       </aside>
 
-      <VerPerfil
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        userId={user?.id || null}
+      <PassKeysModal
+        isOpen={isPasskeysModalOpen}
+        onClose={() => setIsPasskeysModalOpen(false)}
+        user={user}
       />
     </>
   );

@@ -43,6 +43,10 @@ export async function getRegistrationOptions(): Promise<PublicKeyCredentialCreat
 
   const userPasskeys = existingPasskeys || [];
 
+  if (userPasskeys.length >= 3) {
+    throw new Error("Límite de dispositivos alcanzado (Máximo 3)");
+  }
+
   const options = await generateRegistrationOptions({
     rpName,
     rpID,
@@ -73,6 +77,7 @@ export async function getRegistrationOptions(): Promise<PublicKeyCredentialCreat
 
 export async function verifyRegistration(
   response: RegistrationResponseJSON,
+  deviceName: string = "Dispositivo Desconocido"
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient();
@@ -116,6 +121,7 @@ export async function verifyRegistration(
           device_type: credentialDeviceType,
           backed_up: credentialBackedUp,
           transports: credential.transports?.join(",") || "",
+          device_name: deviceName,
         });
 
       if (insertError)
@@ -255,5 +261,64 @@ export async function verifyPasskey(
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : "Desconocido";
     return { success: false, error: errorMessage };
+  }
+}
+
+export async function getPasskeysCount(): Promise<number> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 0;
+    
+    const { count } = await supabase
+      .from("passkeys")
+      .select("*", { count: 'exact', head: true })
+      .eq("user_id", user.id);
+      
+    return count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export type PasskeyDevice = {
+  id: string;
+  device_name: string;
+  created_at: string;
+};
+
+export async function getPasskeys(): Promise<PasskeyDevice[]> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    
+    const { data } = await supabase
+      .from("passkeys")
+      .select("id, device_name, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+      
+    return (data as PasskeyDevice[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function removePasskey(id: string): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    
+    const { error } = await supabase
+      .from("passkeys")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+      
+    return !error;
+  } catch {
+    return false;
   }
 }

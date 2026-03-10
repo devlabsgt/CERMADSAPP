@@ -4,16 +4,19 @@ import { useState, useEffect } from "react";
 import {
   getRegistrationOptions,
   verifyRegistration,
+  getPasskeysCount,
 } from "../passkeys/passkeys-actions";
 import { startRegistration } from "@simplewebauthn/browser";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { AlertCircle, Fingerprint, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Fingerprint, X } from "lucide-react";
 
 export function PasskeyPrompt() {
   const [isVisible, setIsVisible] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [deviceName, setDeviceName] = useState("");
+  const [passkeyCount, setPasskeyCount] = useState<number | null>(null);
+  const [errorStatus, setErrorStatus] = useState("");
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -22,7 +25,11 @@ export function PasskeyPrompt() {
 
       const supports = browserSupportsWebAuthn();
       if (supports) {
-        setIsVisible(true);
+        const count = await getPasskeysCount();
+        setPasskeyCount(count);
+        if (count < 3) {
+          setIsVisible(true);
+        }
       }
     };
     checkStatus();
@@ -36,18 +43,30 @@ export function PasskeyPrompt() {
   };
 
   const handleRegister = async () => {
+    if (!deviceName.trim()) {
+      setErrorStatus("Debes ingresar un nombre para el dispositivo.");
+      return;
+    }
+
     setIsPending(true);
+    setErrorStatus("");
     try {
       const options = await getRegistrationOptions();
       const regResp = await startRegistration({ optionsJSON: options });
-      const verification = await verifyRegistration(regResp);
+      const verification = await verifyRegistration(regResp, deviceName.trim());
 
       if (verification.success) {
         localStorage.setItem("passkey-prompt-dismissed", "true");
         setIsVisible(false);
+      } else {
+        setErrorStatus(`Error: ${verification.error}`);
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      if (error.name === "InvalidStateError") {
+        setErrorStatus("Este dispositivo ya está registrado.");
+      } else {
+        setErrorStatus(`Error: ${error.message}`);
+      }
     } finally {
       setIsPending(false);
     }
@@ -66,34 +85,53 @@ export function PasskeyPrompt() {
         </button>
 
         <div className="p-8 flex flex-col items-center text-center space-y-6">
-          <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Fingerprint className="size-10 text-primary" />
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 rounded-full border-4 border-background bg-amber-100 p-4 dark:bg-amber-900/30">
+            <Fingerprint className="h-8 w-8 text-amber-600 dark:text-amber-500" />
           </div>
-
           <div className="space-y-2">
             <h3 className="text-xl font-bold tracking-tight text-foreground">
-              ¿Activar Passkey?
+              Activar Ingreso Seguro
             </h3>
             <p className="text-sm text-muted-foreground">
-              Use su huella o rostro para iniciar sesión de forma segura sin
-              contraseñas la próxima vez.
+              Usa tu huella, rostro o PIN para entrar de forma más rápida y segura
+              en las próximas visitas.
             </p>
           </div>
 
-          <div className="w-full space-y-3">
-            <button
-              onClick={handleRegister}
+          <div className="w-full space-y-3 text-left">
+            {passkeyCount !== null && (
+              <div className="text-xs font-semibold text-muted-foreground mb-4 text-center">
+                 Dispositivos registrados: {passkeyCount} / 3
+              </div>
+            )}
+            
+            <input
+              type="text"
+              placeholder="Nombre (ej. Mi iPhone, Computadora)"
+              value={deviceName}
+              onChange={(e) => setDeviceName(e.target.value)}
+              className="w-full h-11 px-3 rounded-lg border border-input bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary mb-2"
               disabled={isPending}
-              className="w-full h-11 bg-primary text-primary-foreground font-medium rounded-xl hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {isPending ? "Configurando..." : "Configurar ahora"}
-            </button>
-
+            />
+            {errorStatus ? (
+              <div className="text-sm font-medium text-destructive bg-destructive/10 p-3 rounded-lg mt-2 text-center">
+                {errorStatus}
+              </div>
+            ) : (
+              <button
+                onClick={handleRegister}
+                disabled={isPending || !deviceName.trim()}
+                className="w-full h-11 bg-amber-600 text-white font-medium rounded-xl hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {isPending ? "Configurando..." : "Activar Ahora"}
+              </button>
+            )}
+            
             <button
               onClick={handleDismiss}
               className="w-full h-11 bg-secondary text-secondary-foreground font-medium rounded-xl hover:bg-secondary/80 transition-all"
             >
-              Omitir por ahora
+              Quizás más tarde
             </button>
           </div>
 

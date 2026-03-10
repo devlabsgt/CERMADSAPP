@@ -1,25 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { startRegistration } from "@simplewebauthn/browser";
-import { getRegistrationOptions, verifyRegistration } from "./passkeys-actions";
+import { getRegistrationOptions, verifyRegistration, getPasskeysCount } from "./passkeys-actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function RegisterPasskey() {
   const [status, setStatus] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [deviceName, setDeviceName] = useState("");
+  const [passkeyCount, setPasskeyCount] = useState<number | null>(null);
+
+  const fetchCount = async () => {
+    const count = await getPasskeysCount();
+    setPasskeyCount(count);
+  };
+
+  useEffect(() => {
+    fetchCount();
+  }, []);
 
   const handleRegister = async () => {
+    if (!deviceName.trim()) {
+      setStatus("Por favor, ingresa un nombre para el dispositivo.");
+      return;
+    }
+
     setIsLoading(true);
     setStatus("");
 
     try {
       const options = await getRegistrationOptions();
       const attResp = await startRegistration({ optionsJSON: options });
-      const verificationResp = await verifyRegistration(attResp);
+      const verificationResp = await verifyRegistration(attResp, deviceName.trim());
 
       if (verificationResp.success) {
         setStatus("Dispositivo registrado exitosamente.");
+        setDeviceName("");
+        await fetchCount();
       } else {
         setStatus(`Error al verificar: ${verificationResp.error}`);
       }
@@ -32,14 +51,42 @@ export function RegisterPasskey() {
 
   return (
     <div className="flex flex-col gap-4 p-6 border rounded-xl bg-card">
-      <h3 className="text-lg font-semibold">Configurar Passkey</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Configurar Ingreso Seguro</h3>
+        {passkeyCount !== null && (
+          <span className="text-sm font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-md">
+            {passkeyCount} / 3 Dispositivos
+          </span>
+        )}
+      </div>
       <p className="text-sm text-muted-foreground">
         Añade tu huella, rostro o PIN para iniciar sesión sin contraseña.
       </p>
-      <Button onClick={handleRegister} disabled={isLoading}>
-        {isLoading ? "Esperando sensor..." : "Registrar dispositivo actual"}
-      </Button>
-      {status && <p className="text-sm font-medium text-primary">{status}</p>}
+
+      {passkeyCount !== null && passkeyCount >= 3 ? (
+        <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg font-medium border border-destructive/20 mt-2">
+          Has alcanzado el límite máximo de 3 dispositivos. Modifica o elimina uno existente para agregar más.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 mt-2">
+          <Input 
+            placeholder="Ej. Mi iPhone, Laptop Trabajo" 
+            value={deviceName}
+            onChange={(e) => setDeviceName(e.target.value)}
+            disabled={isLoading || (passkeyCount !== null && passkeyCount >= 3)}
+          />
+          <Button 
+            onClick={handleRegister} 
+            disabled={isLoading || !deviceName.trim()}
+          >
+            {isLoading ? "Esperando sensor..." : "Registrar dispositivo actual"}
+          </Button>
+        </div>
+      )}
+
+      {status && (
+        <p className="text-sm font-medium text-primary mt-1">{status}</p>
+      )}
     </div>
   );
 }
