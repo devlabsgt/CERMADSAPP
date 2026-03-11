@@ -93,6 +93,24 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  
+  /* Evitar zoom automático en dispositivos móviles (iOS Safari / Chromium) */
+  input, 
+  textarea, 
+  select,
+  button {
+    font-size: 16px !important;
+  }
+
+  /* Para pantallas más grandes (sm en adelante), podemos respetar el text-sm u otros tamaños */
+  @media (min-width: 640px) {
+    input,
+    textarea,
+    select,
+    button {
+      font-size: inherit !important;
+    }
+  }
 }
 
 ::view-transition-old(root),

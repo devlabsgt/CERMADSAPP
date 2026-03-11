@@ -59,30 +59,30 @@ export default async function RootLayout({
           >
             <UserProvider user={user}>
               <Header />
-              <main className="flex-1 w-full flex flex-col relative">
+              <main className="flex-1 w-full flex flex-col pb-8">
                 {children}
               </main>
-              <footer className="w-full py-5 border-t border-border/20 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-md relative z-10">
+              <footer className="w-full pt-6 pb-10 md:pb-6 border-t border-border/20 bg-background z-10">
                 <div className="max-w-400 mx-auto px-6">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
-                    className="flex flex-col items-center justify-center space-y-4"
+                    className="flex flex-col items-center justify-center space-y-3 md:space-y-4"
                   >
-                    <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-400">
+                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-zinc-400">
                       © 2026 CERMADSAPP
                     </p>
-                    <div className="text-xs font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
+                    <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 text-center">
                       Powered by{" "}
                       <a
                         href="https://www.oscar27jimenez.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:underline cursor-pointer transition-all inline-block text-zinc-900 dark:text-zinc-100"
+                        className="hover:underline cursor-pointer transition-all inline-flex items-center text-zinc-900 dark:text-zinc-100 mt-1 md:mt-0"
                       >
-                        <AuroraText className="text-sm">
+                        <AuroraText className="text-[10px] md:text-sm whitespace-nowrap">
                           Kore | Ingeniería de Software
                         </AuroraText>
                       </a>
