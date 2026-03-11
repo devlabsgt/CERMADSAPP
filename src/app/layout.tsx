@@ -32,6 +32,14 @@ export const metadata: Metadata = {
   title: "CERMAD S.A. - Construcción y Materiales",
   description:
     "Soluciones integrales en construcción y suministro de materiales de alta calidad.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "CERMAD",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default async function RootLayout({
