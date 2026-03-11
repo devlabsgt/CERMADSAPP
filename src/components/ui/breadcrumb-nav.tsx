@@ -25,15 +25,15 @@ export function BreadcrumbNav() {
         className="flex items-center gap-2 text-[9px] md:text-base font-medium text-muted-foreground overflow-hidden pt-1"
       >
         {/* Botón Atrás (Izquierda de la casita) */}
-        <motion.button
-          layout="position"
-          onClick={() => router.push(parentPath)}
-          className="group flex items-center justify-center hover:text-foreground transition-colors cursor-pointer mr-1"
-          whileTap={{ scale: 0.9 }}
-          title="Atrás"
-        >
-          <ArrowLeft className="size-4 md:size-5 transition-transform group-hover:-translate-x-1" />
-        </motion.button>
+        <motion.div layout="position">
+          <Link
+            href={parentPath}
+            className="group flex items-center justify-center hover:text-foreground transition-colors cursor-pointer mr-1"
+            title="Atrás"
+          >
+            <ArrowLeft className="size-4 md:size-5 transition-transform group-hover:-translate-x-1" />
+          </Link>
+        </motion.div>
 
         {/* Icono Home */}
         <motion.div layout="position" className="flex items-center">

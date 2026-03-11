@@ -8,7 +8,6 @@ import {
   List,
   Truck,
   ShieldAlert,
-  Calculator,
 } from "lucide-react";
 import { useVentas } from "./lib/hooks";
 import SaleModal from "./modals/sale-modal";
@@ -16,7 +15,7 @@ import ReceiptModal from "./modals/receipt-modal";
 import StatusModal from "./modals/status-modal";
 import ListView from "./components/ventas-view";
 import MonitorView from "./components/monitor-view";
-import ContabilidadView from "./components/contabilidad-view";
+
 import { useUser } from "@/components/(base)/providers/UserProvider";
 
 export default function ListadoVentas() {
@@ -34,7 +33,7 @@ export default function ListadoVentas() {
   const canManage = allowedRoles.includes(effectiveRole);
 
   const [viewMode, setViewMode] = useState<
-    "ventas" | "monitor" | "contabilidad"
+    "ventas" | "monitor"
   >("ventas");
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
@@ -73,23 +72,17 @@ export default function ListadoVentas() {
           <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
             {viewMode === "ventas" ? (
               <ShoppingCart className="size-5 md:size-6 text-orange-500" />
-            ) : viewMode === "monitor" ? (
-              <Truck className="size-5 md:size-6 text-blue-500" />
             ) : (
-              <Calculator className="size-5 md:size-6 text-emerald-500" />
+              <Truck className="size-5 md:size-6 text-blue-500" />
             )}
             {viewMode === "ventas"
               ? "Control de Ventas"
-              : viewMode === "monitor"
-                ? "Monitor de Despacho"
-                : "Módulo Contable"}
+              : "Monitor de Despacho"}
           </h1>
           <p className="text-muted-foreground text-xs md:text-sm flex items-center gap-2">
             {viewMode === "ventas"
               ? "Gestión de ventas y despachos."
-              : viewMode === "monitor"
-                ? "Despachos pendientes de entrega en tiempo real."
-                : "Exportación y cálculo de impuestos (IVA/ISR)."}
+              : "Despachos pendientes de entrega en tiempo real."}
             {realRole === "super" && effectiveRole !== "super" && (
               <span className="text-[10px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded border border-red-500/20 whitespace-nowrap">
                 (Simulando: {effectiveRole})
@@ -142,16 +135,6 @@ export default function ListadoVentas() {
                 >
                   <List className="size-4" /> Ventas
                 </button>
-                <button
-                  onClick={() => setViewMode("contabilidad")}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    viewMode === "contabilidad"
-                      ? "bg-background shadow-sm text-emerald-500"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Calculator className="size-4" /> Contabilidad
-                </button>
               </div>
 
               <button
@@ -193,9 +176,7 @@ export default function ListadoVentas() {
         />
       )}
 
-      {viewMode === "contabilidad" && canManage && (
-        <ContabilidadView orders={sortedOrders} />
-      )}
+
       {canManage && (
         <SaleModal
           isOpen={isSaleModalOpen}

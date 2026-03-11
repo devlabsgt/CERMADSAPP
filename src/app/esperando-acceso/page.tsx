@@ -103,8 +103,7 @@ export default function EsperandoAcceso() {
         </div>
         <h1 className="text-2xl font-bold mb-2">Acceso en espera</h1>
         <p className="text-muted-foreground mb-6">
-          Su dispositivo está registrado pero aún no ha sido autorizado por el
-          administrador de <strong>CERMAD S.A.</strong>
+          Su dispositivo está registrado pero aún no ha sido autorizado.
         </p>
         <div className="bg-muted/50 p-4 rounded-xl text-sm mb-6 border border-border italic">
           Por favor, solicite su acceso al departamento de sistemas.
