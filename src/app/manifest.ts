@@ -3,7 +3,7 @@ import { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "CERMAD S.A. - Plataforma de Gestión Empresarial",
-    short_name: "CERMAD",
+    short_name: "CERMAD S.A.",
     description:
       "Aplicación de gestión empresarial para CERMAD S.A., optimizando operaciones y mejorando la eficiencia en la industria de materiales de construcción.",
     start_url: "/",

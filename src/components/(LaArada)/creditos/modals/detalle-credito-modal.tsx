@@ -15,6 +15,7 @@ import {
 import { ClienteCredito, VentaCredito } from "../lib/zod";
 import { useProcesarPago } from "../lib/hooks";
 import { cn } from "@/lib/utils";
+import { showToast } from "@/lib/notifications";
 
 interface DetalleCreditoModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export default function DetalleCreditoModal({
 }: DetalleCreditoModalProps) {
   const [abonos, setAbonos] = useState<Record<string, number>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const [whatsappVentaId, setWhatsappVentaId] = useState<string | null>(null);
   const [whatsappPhone, setWhatsappPhone] = useState("");
 
@@ -75,31 +76,31 @@ export default function DetalleCreditoModal({
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const totalSeleccionado = Object.values(abonos).reduce(
-    (sum, monto) => sum + monto,
-    0,
-  );
-
-  const handlePagarSeleccionados = async () => {
-    const pagosValidos = Object.entries(abonos).filter(
-      ([, monto]) => monto > 0,
-    );
-    if (pagosValidos.length === 0) return;
-    setIsProcessing(true);
+  const handlePagarVenta = async (id: string, monto: number) => {
+    if (monto <= 0) return;
+    setProcessingId(id);
     try {
-      for (const [id, monto] of pagosValidos) {
-        await procesarPago({
-          venta_id: id,
-          monto: monto,
-          metodo_pago: "Efectivo",
-          observaciones: "Abono a cuenta por cobrar",
-        });
-      }
-      onClose();
+      await procesarPago({
+        venta_id: id,
+        monto,
+        metodo_pago: "Efectivo",
+        observaciones: "Abono a cuenta por cobrar",
+      });
+      // Solo limpiar el abono de esta venta, sin cerrar el modal
+      setAbonos((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      showToast(
+        "success",
+        `Se registró correctamente el abono de Q${monto.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+        "top",
+      );
     } catch (error) {
       console.error(error);
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -141,7 +142,7 @@ export default function DetalleCreditoModal({
             <button
               onClick={onClose}
               className="p-3 hover:bg-red-500/10 hover:text-red-500 rounded-full transition-colors cursor-pointer"
-              disabled={isProcessing}
+              disabled={processingId !== null}
             >
               <X className="size-6" />
             </button>
@@ -418,8 +419,8 @@ export default function DetalleCreditoModal({
                           </div>
                           {saldoPendiente > 0 && (
                             <div className="w-full lg:w-96 shrink-0">
-                              <div className="bg-background border-2 border-border/60 rounded-3xl p-6 shadow-md">
-                                <label className="text-sm font-black text-foreground uppercase mb-4 block text-center">
+                              <div className="bg-background border-2 border-border/60 rounded-3xl p-5 shadow-md flex flex-col gap-3">
+                                <label className="text-sm font-black text-foreground uppercase block text-center">
                                   Ingresar Abono
                                 </label>
                                 <div className="flex items-center gap-3 bg-muted/30 border-2 rounded-2xl px-5 py-4 focus-within:ring-2 focus-within:ring-red-500/20">
@@ -438,6 +439,14 @@ export default function DetalleCreditoModal({
                                         e.key === "+"
                                       )
                                         e.preventDefault();
+                                      if (
+                                        e.key === "Enter" &&
+                                        (abonos[venta.id] ?? 0) > 0 &&
+                                        processingId !== venta.id
+                                      ) {
+                                        e.preventDefault();
+                                        handlePagarVenta(venta.id, abonos[venta.id]);
+                                      }
                                     }}
                                     onChange={(e) =>
                                       handleMontoChange(
@@ -450,6 +459,27 @@ export default function DetalleCreditoModal({
                                     className="w-full bg-transparent outline-none font-black text-4xl text-center"
                                   />
                                 </div>
+                                <AnimatePresence>
+                                  {(abonos[venta.id] ?? 0) > 0 && (
+                                    <motion.button
+                                      initial={{ opacity: 0, y: -6 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -6 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePagarVenta(venta.id, abonos[venta.id]);
+                                      }}
+                                      disabled={processingId === venta.id}
+                                      className="w-full py-3 rounded-2xl bg-red-500 text-white font-black hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-500/20 text-sm uppercase tracking-wide"
+                                    >
+                                      {processingId === venta.id ? (
+                                        <Loader2 className="size-4 animate-spin" />
+                                      ) : (
+                                        <>Registrar Abono</>
+                                      )}
+                                    </motion.button>
+                                  )}
+                                </AnimatePresence>
                               </div>
                             </div>
                           )}
@@ -462,38 +492,7 @@ export default function DetalleCreditoModal({
             })}
           </div>
 
-          <div className="p-6 border-t bg-card shrink-0 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-6">
-            <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
-              <span className="text-sm font-bold text-muted-foreground uppercase">
-                Total a abonar:
-              </span>
-              <span className="text-2xl font-black text-foreground">
-                Q{" "}
-                {totalSeleccionado.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-            <div className="flex w-full sm:w-auto gap-4">
-              <button
-                onClick={onClose}
-                className="flex-1 sm:flex-none px-8 py-4 rounded-2xl border-2 font-bold cursor-pointer text-sm uppercase"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handlePagarSeleccionados}
-                disabled={totalSeleccionado <= 0 || isProcessing}
-                className="flex-1 sm:flex-none px-8 py-4 rounded-2xl bg-red-500 text-white font-black hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-3 cursor-pointer shadow-xl shadow-red-500/20 text-sm uppercase"
-              >
-                {isProcessing ? (
-                  <Loader2 className="size-5 animate-spin" />
-                ) : (
-                  <>Registrar Pagos</>
-                )}
-              </button>
-            </div>
-          </div>
+
         </motion.div>
       )}
     </AnimatePresence>
