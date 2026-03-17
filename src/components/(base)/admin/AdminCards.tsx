@@ -21,6 +21,14 @@ const adminOptions = [
     iconKey: "btgcyfug",
     color: "border-purple-500/20 bg-purple-500/5 dark:border-purple-500/40",
   },
+  {
+    id: "configuraciones",
+    href: "/cermadsa/admin/settings",
+    title: "Configuraciones",
+    desc: "Ajustes generales del sistema y seguridad.",
+    iconKey: "plusmrxr",
+    color: "border-blue-500/20 bg-blue-500/5 dark:border-blue-500/40",
+  },
 ];
 
 export function AdminCards({ pendingDevices }: { pendingDevices: number }) {

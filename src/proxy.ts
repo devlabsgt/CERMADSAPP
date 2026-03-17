@@ -14,8 +14,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user) {
+if (user) {
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("require_device_authorization")
+      .limit(1)
+      .maybeSingle();
+
+    const requireAuth = settings?.require_device_authorization ?? false;
+
     if (pathname === "/esperando-acceso") {
+      if (!requireAuth) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/cermadsa";
+        return NextResponse.redirect(url);
+      }
+
       const metadata = user.user_metadata || {};
       const realRole = (metadata.rol || user.role || "user") as string;
 
@@ -60,7 +74,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url);
       }
 
-      if (!["super", "admin"].includes(realRole)) {
+      if (requireAuth && !["super", "admin"].includes(realRole)) {
         const userAgent = request.headers.get("user-agent") || "Desconocido";
 
         const { data: device } = await supabase

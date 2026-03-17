@@ -78,8 +78,9 @@ interface MenuProps {
 
 export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
   const [isPasskeysModalOpen, setIsPasskeysModalOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [perfilOpen, setPerfilOpen] = useState(false);
+  const [isPasskeysEnabled, setIsPasskeysEnabled] = useState(false);
   const pathname = usePathname();
 
   const metadata = user?.user_metadata || {};
@@ -95,11 +96,24 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
     metadata.username || user?.email?.split("@")[0] || "Invitado";
   const canManage = ["super", "admin", "rrhh"].includes(effectiveRole);
 
-  useEffect(() => {
+useEffect(() => {
     if (canManage) {
       getPendingDevicesCount().then((c) => setPendingDevices(c ?? 0));
     }
   }, [canManage]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("app_settings")
+        .select("enable_passkeys")
+        .limit(1)
+        .maybeSingle();
+      setIsPasskeysEnabled(data?.enable_passkeys ?? false);
+    };
+    fetchSettings();
+  }, []);
 
   const handleLogout = async () => {
     setIsOpen(false);
@@ -246,21 +260,22 @@ export default function Menu({ isOpen, setIsOpen, user }: MenuProps) {
                           <p className="text-[10px] text-muted-foreground">Ver y editar perfil</p>
                         </div>
                       </button>
-                      {/* Ingreso Seguro */}
-                      <button
-                        onClick={() => { setIsPasskeysModalOpen(true); setIsOpen(false); }}
-                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors cursor-pointer text-left"
-                      >
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Fingerprint className="size-4 text-muted-foreground" />
-                          <ScanFace className="size-4 text-muted-foreground" />
-                          <KeyRound className="size-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Ingreso Seguro</p>
-                          <p className="text-[10px] text-muted-foreground">Administrar dispositivos</p>
-                        </div>
-                      </button>
+{isPasskeysEnabled && (
+                        <button
+                          onClick={() => { setIsPasskeysModalOpen(true); setIsOpen(false); }}
+                          className="w-full flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors cursor-pointer text-left"
+                        >
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Fingerprint className="size-4 text-muted-foreground" />
+                            <ScanFace className="size-4 text-muted-foreground" />
+                            <KeyRound className="size-4 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">Ingreso Seguro</p>
+                            <p className="text-[10px] text-muted-foreground">Administrar dispositivos</p>
+                          </div>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

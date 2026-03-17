@@ -2,6 +2,21 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
+import { sendPushToRoles } from "@/utils/push-utils";
+
+async function notifySpecialRoles(userName: string, isResend: boolean) {
+  const roles = ["super", "admin", "rrhh"];
+  const title = isResend ? "Nueva Solicitud de Acceso" : "Usuario Esperando Acceso";
+  const body = isResend 
+    ? `${userName} ha vuelto a enviar su solicitud para autorizar este dispositivo.`
+    : `${userName} está en la pantalla de espera de autorización de dispositivo.`;
+  
+  await sendPushToRoles(roles, {
+    title,
+    body,
+    url: "/cermadsa/admin/dispositivos" // Assuming this is where admins manage devices
+  });
+}
 
 export async function checkDeviceRequest() {
   const supabase = await createClient();
@@ -45,5 +60,24 @@ export async function createDeviceRequest() {
 
   if (error) return { success: false, error: error.message };
 
+  // Notify of resend/new request
+  const { data: profile } = await supabase.from("profiles").select("nombre").eq("id", user.id).maybeSingle();
+  const userName = profile?.nombre || user.email?.split("@")[0] || "Usuario";
+  await notifySpecialRoles(userName, true);
+
   return { success: true };
+}
+
+export async function notifyAdminsOfArrival() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  const { data: profile } = await supabase.from("profiles").select("nombre").eq("id", user.id).maybeSingle();
+  const userName = profile?.nombre || user.email?.split("@")[0] || "Usuario";
+  
+  await notifySpecialRoles(userName, false);
 }

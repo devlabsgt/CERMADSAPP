@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useActionState } from "react";
-import { login, type ActionState } from "./actions";
-import { getPasskeyOptions, verifyPasskey } from "./passkeys/passkeys-actions";
+import { login, getPublicAppSettings, type ActionState } from "./actions";import { getPasskeyOptions, verifyPasskey } from "./passkeys/passkeys-actions";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Eye, EyeOff, Fingerprint, ScanFace, KeyRound, User } from "lucide-react";
@@ -17,7 +16,8 @@ export default function LogIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [isPasskeyPending, setIsPasskeyPending] = useState<boolean>(false);
-  const [showCredentials, setShowCredentials] = useState(false);
+const [showCredentials, setShowCredentials] = useState(false);
+  const [isPasskeysEnabled, setIsPasskeysEnabled] = useState<boolean>(false);
   const { theme } = useTheme();
 
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
@@ -43,10 +43,16 @@ export default function LogIn() {
     });
   };
 
-  useEffect(() => {
+useEffect(() => {
     setMounted(true);
+    getPublicAppSettings().then((settings) => {
+      const passkeysEnabled = settings?.enable_passkeys ?? false;
+      setIsPasskeysEnabled(passkeysEnabled);
+      if (!passkeysEnabled) {
+        setShowCredentials(true);
+      }
+    });
   }, []);
-
   useEffect(() => {
     if (state?.success) {
       window.location.href = "/cermadsa";
@@ -200,42 +206,45 @@ export default function LogIn() {
                       : "Entrar ahora"}
                 </span>
               </button>
-
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border/50" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase font-bold tracking-widest">
-                  <span className="bg-card px-3 text-muted-foreground/70">O</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handlePasskeyLogin}
-                className="w-full py-5 flex flex-col items-center justify-center gap-3 rounded-xl transition-all duration-300 bg-secondary hover:bg-secondary/90 hover:border-border/80 hover:shadow-md border border-border text-secondary-foreground cursor-pointer active:scale-[0.98] disabled:opacity-50"
-                disabled={isPending || isPasskeyPending}
-              >
-                {isPasskeyPending ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="size-6 rounded-full border-2 border-secondary-foreground/30 border-t-secondary-foreground animate-spin" />
-                    <span className="text-sm font-bold">Esperando dispositivo...</span>
-                  </div>
-                ) : (
-                  <>
-                    <span className="text-[15px] font-bold">
-                      Ingreso Seguro
-                    </span>
-                    <div className="flex items-center gap-4">
-                      <Fingerprint className="size-6 text-secondary-foreground/70" />
-                      <div className="w-px h-5 bg-border" />
-                      <ScanFace className="size-6 text-secondary-foreground/70" />
-                      <div className="w-px h-5 bg-border" />
-                      <KeyRound className="size-6 text-secondary-foreground/70" />
+{isPasskeysEnabled && (
+                <>
+                  <div className="relative my-2">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border/50" />
                     </div>
-                  </>
-                )}
-              </button>
+                    <div className="relative flex justify-center text-xs uppercase font-bold tracking-widest">
+                      <span className="bg-card px-3 text-muted-foreground/70">O</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handlePasskeyLogin}
+                    className="w-full py-5 flex flex-col items-center justify-center gap-3 rounded-xl transition-all duration-300 bg-secondary hover:bg-secondary/90 hover:border-border/80 hover:shadow-md border border-border text-secondary-foreground cursor-pointer active:scale-[0.98] disabled:opacity-50"
+                    disabled={isPending || isPasskeyPending}
+                  >
+                    {isPasskeyPending ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="size-6 rounded-full border-2 border-secondary-foreground/30 border-t-secondary-foreground animate-spin" />
+                        <span className="text-sm font-bold">Esperando dispositivo...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-[15px] font-bold">
+                          Ingreso Seguro
+                        </span>
+                        <div className="flex items-center gap-4">
+                          <Fingerprint className="size-6 text-secondary-foreground/70" />
+                          <div className="w-px h-5 bg-border" />
+                          <ScanFace className="size-6 text-secondary-foreground/70" />
+                          <div className="w-px h-5 bg-border" />
+                          <KeyRound className="size-6 text-secondary-foreground/70" />
+                        </div>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </MagicCard>

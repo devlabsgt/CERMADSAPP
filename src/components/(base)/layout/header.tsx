@@ -8,6 +8,7 @@ import { Menu as MenuIcon, X } from "lucide-react";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { AuroraText } from "@/components/ui/aurora-text";
+import { PushNotificationToggle } from "@/components/ui/PushNotificationToggle";
 import Menu from "./Menu";
 import { getPendingDevicesCount } from "@/components/(LaArada)/admin/lib/actions";
 
@@ -54,6 +55,8 @@ export default function Header() {
             <div className="flex items-center">
               <AnimatedThemeToggler />
             </div>
+            
+
             <button
               id="refresh-btn"
               onClick={() => window.location.reload()}
@@ -65,6 +68,8 @@ export default function Header() {
                 className="size-6 md:size-8"
               />
             </button>
+            <PushNotificationToggle />
+
 
             {/* Hamburger — with pending badge */}
             <div className="relative ml-2">

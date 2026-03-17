@@ -3,7 +3,7 @@
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { checkDeviceRequest, createDeviceRequest } from "./actions";
+import { checkDeviceRequest, createDeviceRequest, notifyAdminsOfArrival } from "./actions";
 import { Loader2, Lock, PhoneOff } from "lucide-react";
 import Swal from "sweetalert2";
 import { useTheme } from "next-themes";
@@ -24,6 +24,8 @@ export default function EsperandoAcceso() {
     const verifyRequest = async () => {
       const exists = await checkDeviceRequest();
       setHasRequest(exists);
+      // Notify admins that the user is on this page (only if not limit reached)
+      await notifyAdminsOfArrival();
     };
     verifyRequest();
 

@@ -32,11 +32,19 @@ export async function login(
     };
   }
 
-  const user = data.user;
+const user = data.user;
   const metadata = user.user_metadata || {};
   const realRole = metadata.rol || user.role || "user";
 
-  if (!["super", "admin"].includes(realRole)) {
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("require_device_authorization")
+    .limit(1)
+    .maybeSingle();
+
+  const requireAuth = settings?.require_device_authorization ?? false;
+
+  if (requireAuth && !["super", "admin"].includes(realRole)) {
     const userAgent =
       (await headers()).get("user-agent") || "Dispositivo Desconocido";
 
@@ -48,7 +56,6 @@ export async function login(
       .single();
 
     if (!device) {
-      // Check device limit (max 3 per user)
       const { count } = await supabase
         .from("authorized_devices")
         .select("id", { count: "exact", head: true })
@@ -73,4 +80,15 @@ export async function login(
   }
 
   return { success: true, message: "Inicio exitoso" };
+}
+
+export async function getPublicAppSettings() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("require_device_authorization, enable_passkeys")
+    .limit(1)
+    .maybeSingle();
+
+  return data || { require_device_authorization: false, enable_passkeys: false };
 }
