@@ -50,13 +50,27 @@ export function PushNotificationToggle() {
     if (!userId) return
     setLoading(true)
     try {
-      if (!('serviceWorker' in navigator)) return
+      if (!('serviceWorker' in navigator)) {
+        alert("Tu navegador no soporta notificaciones push.")
+        return
+      }
 
-      // Register the service worker exactly like the user's snippet
-      const reg = await navigator.serviceWorker.register('/sw.js')
+      // Explicitly request permission first - better for iOS/Safari compliance
+      if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+          alert("Debes permitir las notificaciones para poder recibirlas.")
+          return
+        }
+      }
+
+      // Register the service worker
+      console.log("Iniciando registro de Service Worker...")
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
       await reg.update()
       
       const registration = await navigator.serviceWorker.ready
+      console.log("Service Worker está listo.")
 
       if (isSubscribed) {
         const subscription = await registration.pushManager.getSubscription()
@@ -77,12 +91,14 @@ export function PushNotificationToggle() {
         // Remove quotes if they exist
         const vapidKey = rawVapidKey.replace(/^["']|["']$/g, '')
         
+        console.log("Suscribiendo al usuario...")
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey)
         })
 
         const subscriptionJson = JSON.parse(JSON.stringify(sub))
+        console.log("Suscripción generada con éxito.")
 
         const { error } = await supabase.from('push_subscriptions').upsert({
           user_id: userId,
@@ -96,12 +112,8 @@ export function PushNotificationToggle() {
         setIsSubscribed(true)
       }
     } catch (error: any) {
-      console.error("Push toggle error details:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-        error
-      })
+      console.error("Detalles del fallo en Push:", error)
+      alert(`Error: ${error.message || "Fallo al activar notificaciones"}`)
     } finally {
       setLoading(false)
     }
