@@ -5,13 +5,17 @@ import { createClient } from '@/utils/supabase/client'
 import { urlBase64ToUint8Array } from '@/utils/vapid'
 import { Bell, BellOff, Loader2, Check } from 'lucide-react'
 import { useUser } from '@/components/(base)/providers/UserProvider'
+import { useTheme } from 'next-themes'
 
 export function PushNotificationToggle() {
   const user = useUser()
   const userId = user?.id
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { theme } = useTheme()
   const supabase = createClient()
+
+  const isDark = theme === 'dark'
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -121,19 +125,20 @@ export function PushNotificationToggle() {
 
   if (!userId) return null;
 
+  // Dinámicamente calcular colores para Dark Mode
+  const bellColor = isSubscribed 
+    ? (isDark ? '#facc15' : '#eab308') 
+    : (isDark ? '#737373' : '#9ca3af');
+
   return (
     <button
       onClick={handleToggle}
       disabled={loading}
-      className="flex-shrink-0 flex items-center justify-center cursor-pointer transition-all duration-200"
+      className="flex-shrink-0 flex items-center justify-center cursor-pointer transition-all duration-200 hover:opacity-80 active:scale-95"
       style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '8px',
-        borderWidth: isSubscribed ? '2px' : '1.5px',
-        borderStyle: 'solid',
-        backgroundColor: isSubscribed ? '#FEFCE8' : '#f3f4f6',
-        borderColor: isSubscribed ? '#FEF08A' : '#e5e7eb',
+        width: '32px',
+        height: '32px',
+        backgroundColor: 'transparent',
       }}
       title={isSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
     >
@@ -141,15 +146,15 @@ export function PushNotificationToggle() {
         <Loader2 className="animate-spin" style={{ width: '18px', height: '18px', color: '#2563EB' }} />
       ) : isSubscribed ? (
         <div style={{ position: 'relative', display: 'flex' }}>
-          <Bell strokeWidth={2} style={{ width: '20px', height: '20px', color: '#EAB308', fill: '#EAB308' }} />
+          <Bell strokeWidth={2.5} style={{ width: '22px', height: '22px', color: bellColor, fill: bellColor }} />
           <div style={{
             position: 'absolute',
-            top: '-3px',
-            right: '-3px',
+            top: '-4px',
+            right: '-4px',
             width: '14px',
             height: '14px',
             backgroundColor: '#22c55e',
-            border: '2px solid #ffffff',
+            border: isDark ? '2px solid #000000' : '2px solid #ffffff',
             borderRadius: '9999px',
             display: 'flex',
             alignItems: 'center',
@@ -159,9 +164,8 @@ export function PushNotificationToggle() {
           </div>
         </div>
       ) : (
-        <BellOff strokeWidth={2} style={{ width: '20px', height: '20px', color: '#9ca3af' }} />
+        <BellOff strokeWidth={2.5} style={{ width: '22px', height: '22px', color: bellColor }} />
       )}
     </button>
   )
-  
 }
