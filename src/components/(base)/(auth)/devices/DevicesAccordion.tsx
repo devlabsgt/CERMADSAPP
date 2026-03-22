@@ -66,7 +66,7 @@ export function DevicesAccordion({ groups }: { groups: UserGroup[] }) {
         />
       </div>
 
-      {/* Accordion */}
+      {/* Empty state */}
       {filtered.length === 0 && (
         <div className="p-12 text-center text-muted-foreground italic text-sm">
           {search ? "Sin resultados para esa búsqueda." : "No hay registros de dispositivos."}
@@ -130,49 +130,73 @@ export function DevicesAccordion({ groups }: { groups: UserGroup[] }) {
                   {group.devices.map((dev) => (
                     <div
                       key={dev.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 bg-muted/10 hover:bg-muted/20 transition-colors"
+                      className={cn(
+                        "flex transition-colors",
+                        dev.is_authorized ? "bg-muted/10" : "bg-amber-500/5"
+                      )}
                     >
-                      {/* Device info */}
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="mt-0.5 shrink-0 p-1.5 rounded-lg bg-background border border-border">
-                          {dev.device_name.toLowerCase().includes("mac") ||
-                          dev.device_name.toLowerCase().includes("windows") ? (
-                            <Monitor className="size-4 text-muted-foreground" />
-                          ) : (
-                            <Smartphone className="size-4 text-muted-foreground" />
-                          )}
+                      {/* ── Left status bar ──
+                          Icon + text rotated -90deg as one perfectly-centered unit */}
+                      <div
+                        className={cn(
+                          "shrink-0 w-7 self-stretch relative overflow-hidden",
+                          dev.is_authorized ? "bg-emerald-500/10" : "bg-amber-500/15"
+                        )}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            className="flex items-center gap-1"
+                            style={{ transform: "rotate(-90deg)", whiteSpace: "nowrap" }}
+                          >
+                            {dev.is_authorized ? (
+                              <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <ShieldAlert className="size-3 text-amber-600 dark:text-amber-400" />
+                            )}
+                            <span
+                              className={cn(
+                                "text-[8px] font-bold uppercase tracking-widest leading-none",
+                                dev.is_authorized
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-amber-600 dark:text-amber-400"
+                              )}
+                            >
+                              {dev.is_authorized ? "Autorizado" : "Pendiente"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold truncate max-w-[260px] lg:max-w-md">
-                            {dev.friendly_name || dev.device_name}
-                          </p>
-                          {dev.friendly_name && (
-                            <p className="text-[10px] text-muted-foreground truncate max-w-[260px] lg:max-w-md">
-                              {dev.device_name}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
+                      </div>
+
+                      {/* ── Main content — grid of rows separated by border-b ── */}
+                      <div className="flex-1 min-w-0 flex flex-col border-l border-border/30">
+
+                        {/* Row 1: device icons · date */}
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+                          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-background border border-border">
+                            <Monitor className="size-3.5 text-muted-foreground" />
+                            <Smartphone className="size-3 text-muted-foreground" />
+                          </div>
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                             <Calendar className="size-3 shrink-0" />
                             {format(new Date(dev.created_at), "dd/MM/yyyy HH:mm", {
                               locale: es,
                             })}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Status + actions */}
-                      <div className="flex items-center gap-3 shrink-0">
-                        {dev.is_authorized ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                            <ShieldCheck className="size-3" />
-                            Autorizado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                            <ShieldAlert className="size-3" />
-                            Pendiente
-                          </span>
-                        )}
+                        {/* Row 2: device name — more vertical room */}
+                        <div className="px-3 py-3 border-b border-border/50">
+                          <p className="text-xs font-semibold leading-snug break-words">
+                            {dev.friendly_name || dev.device_name}
+                          </p>
+                          {dev.friendly_name && (
+                            <p className="text-[10px] text-muted-foreground break-words leading-snug mt-0.5">
+                              {dev.device_name}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Row 3: segmented buttons — full width, no padding */}
                         <AuthorizeButton id={dev.id} isAuthorized={dev.is_authorized} />
                       </div>
                     </div>

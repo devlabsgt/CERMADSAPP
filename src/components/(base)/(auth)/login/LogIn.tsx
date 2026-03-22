@@ -4,10 +4,11 @@ import { useState, useEffect, useActionState } from "react";
 import { login, getPublicAppSettings, type ActionState } from "./actions";import { getPasskeyOptions, verifyPasskey } from "./passkeys/passkeys-actions";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { MagicCard } from "@/components/ui/magic-card";
-import { Eye, EyeOff, Fingerprint, ScanFace, KeyRound, User } from "lucide-react";
+import { Eye, EyeOff, Fingerprint, ScanFace, KeyRound, User, ArrowBigUpDash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuroraText } from "@/components/ui/aurora-text";
 import { DotPattern } from "@/components/ui/dot-pattern";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "next-themes";
 import Swal from "sweetalert2";
 
@@ -16,9 +17,15 @@ export default function LogIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [isPasskeyPending, setIsPasskeyPending] = useState<boolean>(false);
-const [showCredentials, setShowCredentials] = useState(false);
+  const [showCredentials, setShowCredentials] = useState(false);
   const [isPasskeysEnabled, setIsPasskeysEnabled] = useState<boolean>(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const { theme } = useTheme();
+
+  const handleKeyUpDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setIsCapsLockOn(e.getModifierState("CapsLock"));
+  };
 
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     login,
@@ -47,10 +54,14 @@ useEffect(() => {
     setMounted(true);
     getPublicAppSettings().then((settings) => {
       const passkeysEnabled = settings?.enable_passkeys ?? false;
-      setIsPasskeysEnabled(passkeysEnabled);
-      if (!passkeysEnabled) {
+      const hasLocalPasskey = localStorage.getItem("cermad-device-passkey-enabled") === "true";
+      
+      const shouldShowPasskeys = passkeysEnabled && hasLocalPasskey;
+      setIsPasskeysEnabled(shouldShowPasskeys);
+      if (!shouldShowPasskeys) {
         setShowCredentials(true);
       }
+      setIsLoadingSettings(false);
     });
   }, []);
   useEffect(() => {
@@ -73,6 +84,7 @@ useEffect(() => {
       const verification = await verifyPasskey(asseResp);
 
       if (verification.success) {
+        localStorage.setItem("cermad-device-passkey-enabled", "true");
         window.location.href = "/cermadsa";
       } else if (verification.error === "DEVICE_LIMIT") {
         window.location.href = "/esperando-acceso?reason=limit";
@@ -118,8 +130,23 @@ useEffect(() => {
             </div>
           </div>
 
-          <form
-            action={formAction}
+          {isLoadingSettings ? (
+            <div className="flex flex-col gap-6 p-10 w-full animate-in fade-in duration-500">
+              <div className="flex flex-col gap-6">
+                <div className="grid gap-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                </div>
+                <div className="grid gap-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                </div>
+              </div>
+              <Skeleton className="h-12 w-full rounded-xl mt-4" />
+            </div>
+          ) : (
+            <form
+              action={formAction}
             className={cn(
               "transition-all duration-500 flex flex-col",
               showCredentials ? "gap-6 p-10" : "gap-0 px-10 pb-10 pt-8"
@@ -157,16 +184,31 @@ useEffect(() => {
                 </div>
 
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold text-foreground/70">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-foreground/70">
                     Contraseña
+                    {isCapsLockOn && (
+                      <span className="text-[10px] text-amber-500 font-bold uppercase animate-pulse">
+                        Mayúsculas activadas
+                      </span>
+                    )}
                   </label>
                   <div className="relative">
+                    {isCapsLockOn && (
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 pointer-events-none" title="Mayúsculas activadas">
+                        <ArrowBigUpDash className="size-4" />
+                      </div>
+                    )}
                     <input
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
                       required={showCredentials}
-                      className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      onKeyDown={handleKeyUpDown}
+                      onKeyUp={handleKeyUpDown}
+                      className={cn(
+                        "flex h-10 w-full rounded-lg border border-input bg-background/50 py-2 text-sm pr-10 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+                        isCapsLockOn ? "pl-9" : "pl-3"
+                      )}
                       placeholder="••••••••"
                     />
                     <button
@@ -247,6 +289,7 @@ useEffect(() => {
               )}
             </div>
           </form>
+          )}
         </MagicCard>
       </div>
     </div>

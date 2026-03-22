@@ -8,6 +8,7 @@ import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ChevronRight, ShieldAlert } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AreaChart,
   Area,
@@ -34,6 +35,7 @@ export default function DashboardLaArada() {
     sinStock: 0,
     stockBajo: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (realRole) setEffectiveRole(realRole);
@@ -41,17 +43,23 @@ export default function DashboardLaArada() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [pendientes, stock, ordersData] = await Promise.all([
-        getPendingOrdersCount(),
-        getStockStats(),
-        getVentas().catch(() => []),
-      ]);
-      setStats({
-        pendientes: pendientes || 0,
-        sinStock: stock?.sinStock || 0,
-        stockBajo: stock?.stockBajo || 0,
-      });
-      setVentas(ordersData || []);
+      try {
+        const [pendientes, stock, ordersData] = await Promise.all([
+          getPendingOrdersCount(),
+          getStockStats(),
+          getVentas().catch(() => []),
+        ]);
+        setStats({
+          pendientes: pendientes || 0,
+          sinStock: stock?.sinStock || 0,
+          stockBajo: stock?.stockBajo || 0,
+        });
+        setVentas(ordersData || []);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStats();
   }, []);
@@ -188,6 +196,37 @@ export default function DashboardLaArada() {
     if (activeId) return;
     setActiveId(id);
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 w-full px-6 lg:px-12 space-y-10 max-w-550 mx-auto pb-10">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <header className="flex items-center gap-4 md:gap-6 group">
+            <Skeleton className="size-12 md:size-16 rounded-2xl" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 md:h-12 w-48 md:w-64" />
+              <Skeleton className="h-4 md:h-6 w-32 md:w-48" />
+            </div>
+          </header>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[120px] md:auto-rows-[200px]">
+          {menuItems.filter(item => item.allowedRoles.includes(effectiveRole)).map((item, idx) => (
+            <Skeleton
+              key={idx}
+              className={cn(
+                "rounded-4xl md:rounded-[2.5rem]",
+                item.className
+              )}
+            />
+          ))}
+          {canViewStats && (
+            <Skeleton className="rounded-4xl md:rounded-[2.5rem] md:col-span-2" />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

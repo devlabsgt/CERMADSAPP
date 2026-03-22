@@ -108,32 +108,39 @@ export function AuthorizeButton({
   };
 
   return (
-    <div className="flex items-center justify-end gap-3">
+    /* Segmented control: full width, no individual borders, just a divider line */
+    <div className="flex w-full">
+      {/* Deny / Revoke button */}
       <button
         onClick={() => handleAction("deny")}
         disabled={loading}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 cursor-pointer active:scale-95 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20 dark:hover:bg-red-500/20 shadow-sm"
+        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors duration-150 disabled:opacity-50 cursor-pointer text-red-600 hover:bg-red-500/8 dark:text-red-400 dark:hover:bg-red-500/10 active:bg-red-500/15"
       >
         {loading ? (
-          <Loader2 className="size-4 animate-spin" />
+          <Loader2 className="size-3.5 animate-spin" />
         ) : (
-          <X className="size-4 stroke-3" />
+          <X className="size-3.5 stroke-[2.5]" />
         )}
         {isAuthorized ? "Revocar" : "Rechazar"}
       </button>
+
+      {/* Divider + Authorize button (only when pending) */}
       {!isAuthorized && (
-        <button
-          onClick={() => handleAction("authorize")}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 cursor-pointer active:scale-95 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20 shadow-sm"
-        >
-          {loading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Check className="size-4 stroke-3" />
-          )}
-          Autorizar
-        </button>
+        <>
+          <div className="w-px bg-border/60 shrink-0" />
+          <button
+            onClick={() => handleAction("authorize")}
+            disabled={loading}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold transition-colors duration-150 disabled:opacity-50 cursor-pointer text-emerald-700 hover:bg-emerald-500/8 dark:text-emerald-400 dark:hover:bg-emerald-500/10 active:bg-emerald-500/15"
+          >
+            {loading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Check className="size-3.5 stroke-[2.5]" />
+            )}
+            Autorizar
+          </button>
+        </>
       )}
     </div>
   );

@@ -36,6 +36,7 @@ export function RegisterPasskey() {
       const verificationResp = await verifyRegistration(attResp, deviceName.trim());
 
       if (verificationResp.success) {
+        localStorage.setItem("cermad-device-passkey-enabled", "true");
         setStatus("Dispositivo registrado exitosamente.");
         setDeviceName("");
         await fetchCount();
@@ -43,6 +44,9 @@ export function RegisterPasskey() {
         setStatus(`Error al verificar: ${verificationResp.error}`);
       }
     } catch (error: any) {
+      if (error.name === "InvalidStateError") {
+        localStorage.setItem("cermad-device-passkey-enabled", "true");
+      }
       setStatus(`Error: ${error.message}`);
     } finally {
       setIsLoading(false);

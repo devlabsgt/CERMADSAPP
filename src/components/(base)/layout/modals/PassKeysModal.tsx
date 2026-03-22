@@ -118,6 +118,7 @@ export default function PassKeysModal({ isOpen, onClose, user }: PassKeysModalPr
       const verification = await verifyRegistration(regResp, deviceName.trim());
 
       if (verification.success) {
+        localStorage.setItem("cermad-device-passkey-enabled", "true");
         fetchPasskeys();
         Swal.fire({
           title: "¡Éxito!",
@@ -139,6 +140,7 @@ export default function PassKeysModal({ isOpen, onClose, user }: PassKeysModalPr
       }
     } catch (error: any) {
       if (error.name === "InvalidStateError") {
+        localStorage.setItem("cermad-device-passkey-enabled", "true");
         Swal.fire({
           title: "Dispositivo ya registrado",
           text: "Este dispositivo ya se encuentra en tu lista de dispositivos seguros.",

@@ -12,6 +12,7 @@ export function PushNotificationToggle() {
   const userId = user?.id
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const { theme } = useTheme()
   const supabase = createClient()
 
@@ -44,7 +45,11 @@ export function PushNotificationToggle() {
           }
         } catch (e) {
           console.error("Error checking push status:", e)
+        } finally {
+          setIsInitializing(false)
         }
+      } else {
+        setIsInitializing(false)
       }
     }
     checkStatus()
@@ -125,6 +130,15 @@ export function PushNotificationToggle() {
 
   if (!userId) return null;
 
+  if (isInitializing) {
+    return (
+      <div 
+        className="flex-shrink-0 flex items-center justify-center"
+        style={{ width: '32px', height: '32px', backgroundColor: 'transparent' }}
+      />
+    )
+  }
+
   // Dinámicamente calcular colores para Dark Mode
   const bellColor = isSubscribed 
     ? (isDark ? '#facc15' : '#eab308') 
@@ -143,16 +157,16 @@ export function PushNotificationToggle() {
       title={isSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
     >
       {loading ? (
-        <Loader2 className="animate-spin" style={{ width: '18px', height: '18px', color: '#2563EB' }} />
+        <Loader2 className="animate-spin" style={{ width: '16px', height: '16px', color: '#2563EB' }} />
       ) : isSubscribed ? (
         <div style={{ position: 'relative', display: 'flex' }}>
-          <Bell strokeWidth={2.5} style={{ width: '22px', height: '22px', color: bellColor, fill: bellColor }} />
+          <Bell strokeWidth={2} style={{ width: '18px', height: '18px', color: bellColor, fill: bellColor }} />
           <div style={{
             position: 'absolute',
-            top: '-4px',
-            right: '-4px',
-            width: '14px',
-            height: '14px',
+            top: '-5px',
+            right: '-5px',
+            width: '12px',
+            height: '12px',
             backgroundColor: '#22c55e',
             border: isDark ? '2px solid #000000' : '2px solid #ffffff',
             borderRadius: '9999px',
@@ -160,11 +174,11 @@ export function PushNotificationToggle() {
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Check strokeWidth={4} style={{ width: '8px', height: '8px', color: '#ffffff' }} />
+            <Check strokeWidth={4} style={{ width: '7px', height: '7px', color: '#ffffff' }} />
           </div>
         </div>
       ) : (
-        <BellOff strokeWidth={2.5} style={{ width: '22px', height: '22px', color: bellColor }} />
+        <BellOff strokeWidth={2} style={{ width: '18px', height: '18px', color: bellColor }} />
       )}
     </button>
   )
