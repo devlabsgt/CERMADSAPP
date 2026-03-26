@@ -9,12 +9,10 @@ export function BreadcrumbNav() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Si estamos en el home, no renderizamos nada
   if (pathname === "/cermadsa") return null;
 
   const segments = pathname.split("/").filter((item) => item !== "");
 
-  // Calcular la ruta padre para el botón de atrás
   const parentPath =
     segments.length > 1 ? `/${segments.slice(0, -1).join("/")}` : "/cermadsa";
 
@@ -24,7 +22,6 @@ export function BreadcrumbNav() {
         layout
         className="flex items-center gap-2 text-[9px] md:text-base font-medium text-muted-foreground overflow-hidden pt-1"
       >
-        {/* Botón Atrás (Izquierda de la casita) */}
         <motion.div layout="position">
           <Link
             href={parentPath}
@@ -35,7 +32,6 @@ export function BreadcrumbNav() {
           </Link>
         </motion.div>
 
-        {/* Icono Home */}
         <motion.div layout="position" className="flex items-center">
           <Link
             href="/cermadsa"
@@ -45,11 +41,9 @@ export function BreadcrumbNav() {
           </Link>
         </motion.div>
 
-        {/* Segmentos de Ruta */}
         <div className="flex items-center gap-1 overflow-hidden mask-gradient">
           <AnimatePresence mode="popLayout" initial={false}>
             {segments.map((segment, index) => {
-              // Omitir el segmento base 'cermadsa' para no duplicar el home
               if (segment === "cermadsa") return null;
 
               const href = `/${segments.slice(0, index + 1).join("/")}`;
@@ -58,7 +52,7 @@ export function BreadcrumbNav() {
               return (
                 <motion.div
                   layout="position"
-                  key={href} // La key es vital: URL única
+                  key={href}
                   initial={{ opacity: 0, x: 10, scale: 0.9 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{

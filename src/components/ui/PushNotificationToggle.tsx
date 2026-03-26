@@ -20,7 +20,6 @@ export function PushNotificationToggle() {
 
   useEffect(() => {
     const checkStatus = async () => {
-      // Check for both service Worker and userId
       if ('serviceWorker' in navigator && userId) {
         try {
           const reg = await navigator.serviceWorker.getRegistration()
@@ -64,7 +63,6 @@ export function PushNotificationToggle() {
         return
       }
 
-      // Explicitly request permission first - better for iOS/Safari compliance
       if (Notification.permission === 'default') {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') {
@@ -73,7 +71,6 @@ export function PushNotificationToggle() {
         }
       }
 
-      // Register the service worker
       console.log("Iniciando registro de Service Worker...")
       const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
       await reg.update()
@@ -97,7 +94,6 @@ export function PushNotificationToggle() {
         const rawVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
         if (!rawVapidKey) throw new Error("VAPID public key not found")
         
-        // Remove quotes if they exist
         const vapidKey = rawVapidKey.replace(/^["']|["']$/g, '')
         
         console.log("Suscribiendo al usuario...")
@@ -139,7 +135,6 @@ export function PushNotificationToggle() {
     )
   }
 
-  // Dinámicamente calcular colores para Dark Mode
   const bellColor = isSubscribed 
     ? (isDark ? '#facc15' : '#eab308') 
     : (isDark ? '#737373' : '#9ca3af');
