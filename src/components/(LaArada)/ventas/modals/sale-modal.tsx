@@ -290,7 +290,7 @@ export default function SaleModal({
                   </div>
                 </div>
 
-                <div className="md:col-span-2 space-y-1.5">
+                <div className="md:col-span-3 space-y-1.5">
                   <label className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">
                     Tipo Venta
                   </label>
@@ -304,22 +304,7 @@ export default function SaleModal({
                   </select>
                 </div>
 
-                <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">
-                    Documento
-                  </label>
-                  <select
-                    {...register("tipo_comprobante")}
-                    disabled={isReadOnly}
-                    className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <option value="Recibo">Recibo</option>
-                    <option value="NIT">NIT</option>
-                    <option value="C/F">C/F</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2 space-y-1.5">
+                <div className="md:col-span-3 space-y-1.5">
                   <label
                     className={cn(
                       "text-[10px] md:text-xs font-bold uppercase truncate",

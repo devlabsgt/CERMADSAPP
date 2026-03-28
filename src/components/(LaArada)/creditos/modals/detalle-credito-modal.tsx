@@ -172,10 +172,7 @@ export default function DetalleCreditoModal({
                     <div className="flex-1 w-full">
                       <div className="flex justify-between items-center w-full">
                         <p className="font-bold text-lg md:text-xl text-foreground">
-                          Venta #
-                          {venta.numero_recibo
-                            ? String(venta.numero_recibo).padStart(5, "0")
-                            : venta.id.slice(0, 6).toUpperCase()}
+                          Venta #{venta.id ? `${venta.id.substring(0, 3).toUpperCase()}-${venta.id.substring(3, 6).toUpperCase()}` : '---'}
                         </p>
                         <p className="text-sm text-muted-foreground font-medium">
                           {venta.created_at
@@ -308,11 +305,7 @@ export default function DetalleCreditoModal({
                                           };
                                         };
 
-                                        const numV = venta.numero_recibo
-                                          ? String(
-                                              venta.numero_recibo,
-                                            ).padStart(5, "0")
-                                          : venta.id.slice(0, 6).toUpperCase();
+                                        const numV = venta.id ? `${venta.id.substring(0, 3).toUpperCase()}-${venta.id.substring(3, 6).toUpperCase()}` : '---';
                                         const fV = formatParts(
                                           venta.created_at,
                                         );
@@ -334,9 +327,7 @@ export default function DetalleCreditoModal({
                                             const fP = formatParts(
                                               pago.created_at,
                                             );
-                                            const idA = pago.id
-                                              .slice(0, 6)
-                                              .toUpperCase();
+                                            const idA = pago.id ? `${pago.id.substring(0, 3).toUpperCase()}-${pago.id.substring(3, 6).toUpperCase()}` : '---';
                                             const monA = Number(
                                               pago.monto,
                                             ).toLocaleString("en-US", {
@@ -374,7 +365,7 @@ export default function DetalleCreditoModal({
                                       <div className="flex justify-between items-start w-full mb-1">
                                         <span className="font-bold text-foreground text-base">
                                           Abono: #
-                                          {pago.id.slice(0, 6).toUpperCase()}
+                                          {pago.id ? `${pago.id.substring(0, 3).toUpperCase()}-${pago.id.substring(3, 6).toUpperCase()}` : '---'}
                                         </span>
                                         <span className="text-xs text-muted-foreground font-medium text-right mt-1">
                                           {pago.created_at

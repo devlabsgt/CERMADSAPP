@@ -20,14 +20,15 @@ export async function getCatalogos() {
   };
 }
 
-export async function getVentas() {
+export async function getVentas(vendedorId?: string) {
   const supabase = await createClient();
-  const { data: ventas, error } = await supabase
+  let query = supabase
     .from("ven_ventas")
     .select(
       `
       *,
       ven_clientes (nombre, nit),
+      dte_documentos (estado),
       ven_detalle (
         id,
         producto_id,
@@ -37,8 +38,13 @@ export async function getVentas() {
         inv_productos (nombre, medida)
       )
     `,
-    )
-    .order("created_at", { ascending: false });
+    );
+
+  if (vendedorId && vendedorId !== "all") {
+    query = query.eq("usuario_id", vendedorId);
+  }
+
+  const { data: ventas, error } = await query.order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
 
@@ -64,6 +70,28 @@ export async function getVentas() {
   }
 
   return ventas;
+}
+
+export async function getVendedores() {
+  const supabase = await createClient();
+  
+  // Obtenemos los IDs de usuarios únicos de la tabla ven_ventas
+  const { data: uniqueUserIds } = await supabase
+    .from("ven_ventas")
+    .select("usuario_id");
+
+  const ids = Array.from(new Set(uniqueUserIds?.map(u => u.usuario_id).filter(Boolean)));
+  
+  if (!ids.length) return [];
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("id, nombre")
+    .in("id", ids)
+    .order("nombre");
+
+  if (error) return [];
+  return profiles || [];
 }
 
 export async function createVenta(data: VentaFormValues) {
@@ -202,7 +230,8 @@ export async function getVentaById(id: string) {
       ven_detalle (
         *,
         inv_productos (nombre, codigo, medida)
-      )
+      ),
+      dte_documentos (*)
     `,
     )
     .eq("id", id)

@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { getVentas, createVenta, getCatalogos, updateVenta } from "./actions";
+import { getVentas, createVenta, getCatalogos, updateVenta, getVendedores } from "./actions";
 import { VentaFormValues } from "./zod";
 import Swal from "sweetalert2";
 
-export function useVentas() {
+export function useVentas(vendedorId?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -15,12 +15,12 @@ export function useVentas() {
     const invalidate = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["ventas"] });
+        queryClient.invalidateQueries({ queryKey: ["ventas", vendedorId] });
       }, 500);
     };
 
     const channel = supabase
-      .channel("realtime-ventas")
+      .channel(`realtime-ventas-${vendedorId || 'all'}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ven_ventas" },
@@ -37,11 +37,19 @@ export function useVentas() {
       clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, vendedorId]);
 
   return useQuery({
-    queryKey: ["ventas"],
-    queryFn: getVentas,
+    queryKey: ["ventas", vendedorId],
+    queryFn: () => getVentas(vendedorId),
+  });
+}
+
+export function useVendedores() {
+  return useQuery({
+    queryKey: ["vendedores"],
+    queryFn: getVendedores,
+    staleTime: 1000 * 60 * 10,
   });
 }
 

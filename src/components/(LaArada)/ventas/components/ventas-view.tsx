@@ -7,6 +7,10 @@ import {
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
+import Swal from "sweetalert2";
+import StatsModal from "../modals/stats-modal";
+import { TrendingUp, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const getGuatemalaDateParts = (dateInput?: string | Date) => {
   if (!dateInput || dateInput === "Sin Fecha")
@@ -82,6 +86,28 @@ export default function ListView({
   const [filtroSemana, setFiltroSemana] = useState<number | "Todas">("Todas");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [isStatsAccordionOpen, setIsStatsAccordionOpen] = useState(false);
+  const [selectedStatsSeller, setSelectedStatsSeller] = useState<{id: string, name: string} | null>(null);
+
+  const sellerStats = useMemo(() => {
+    const stats: Record<string, { total: number; count: number; id: string }> = {};
+    
+    data.filter((v: any) => {
+        const orderDate = getGuatemalaDateParts(getOrderDateString(v));
+        return orderDate.year === filtroAnio && 
+               orderDate.month === filtroMes && 
+               v.estado?.toLowerCase() !== "anulado";
+    }).forEach((order: any) => {
+      const name = order.vendedor?.nombre || "Vendedor Gral";
+      const sellerId = order.usuario_id || "unknown";
+      if (!stats[name]) stats[name] = { total: 0, count: 0, id: sellerId };
+      stats[name].total += order.total || 0;
+      stats[name].count += 1;
+    });
+
+    return Object.entries(stats).sort((a, b) => b[1].total - a[1].total);
+  }, [data, filtroAnio, filtroMes]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -112,11 +138,13 @@ export default function ListView({
         const clienteNombre = (order.ven_clientes?.nombre || "").toLowerCase();
         const clienteNit = (order.ven_clientes?.nit || "").toLowerCase();
         const numRecibo = String(order.numero_recibo || "").toLowerCase();
+        const shortId = String(order.id || "").substring(0, 6).toLowerCase();
 
         matchSearch =
           clienteNombre.includes(term) ||
           clienteNit.includes(term) ||
-          numRecibo.includes(term);
+          numRecibo.includes(term) ||
+          shortId.includes(term);
       }
 
       return (
@@ -202,8 +230,8 @@ export default function ListView({
     );
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 items-start animate-in fade-in duration-300">
-      <aside className="w-full md:w-[15%] shrink-0 flex flex-col gap-6 sticky md:top-6 text-xs">
+    <div className="flex flex-col lg:flex-row gap-8 items-start animate-in fade-in duration-300">
+      <aside className="w-full lg:w-[20%] shrink-0 flex flex-col gap-8 sticky lg:top-6 text-xs">
         <div className="flex flex-col gap-2">
           <h3 className="font-bold text-muted-foreground uppercase text-xs">
             Buscar
@@ -304,6 +332,54 @@ export default function ListView({
               ))}
           </div>
         </div>
+
+        <div className="flex flex-col gap-3">
+          <button 
+            onClick={() => setIsStatsAccordionOpen(!isStatsAccordionOpen)}
+            className="flex items-center justify-between w-full group cursor-pointer mb-1 transition-all"
+          >
+            <h3 className="font-bold text-orange-600 uppercase text-[10px] tracking-tight group-hover:text-orange-700 transition-colors">
+                Ventas del Mes por Vendedor
+            </h3>
+            <ChevronDown className={`size-3 text-orange-500 transition-transform duration-300 ${isStatsAccordionOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          <AnimatePresence>
+            {isStatsAccordionOpen && (
+                <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                >
+                    <div className="flex flex-col gap-2 pt-1">
+                        {sellerStats.length === 0 ? (
+                        <p className="text-[10px] italic text-muted-foreground">Sin ventas este mes</p>
+                        ) : (
+                            sellerStats.map(([name, stat]) => (
+                            <button 
+                                key={stat.id}
+                                onClick={() => setSelectedStatsSeller({ id: stat.id, name })}
+                                className="p-3 bg-card border rounded-xl flex flex-col gap-1 group relative overflow-hidden cursor-pointer hover:bg-orange-500/5 hover:border-orange-500/30 transition-all active:scale-95 text-left w-full"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <span className="font-bold text-[10px] line-clamp-1 grow pr-2">{name}</span>
+                                    <TrendingUp className="size-3 text-orange-500 opacity-0 group-hover:opacity-100 transition-all" />
+                                </div>
+                                <div className="flex justify-between items-baseline mt-1">
+                                    <span className="font-black text-xs text-orange-600">Q{stat.total.toLocaleString()}</span>
+                                    <span className="text-[9px] font-bold text-muted-foreground">({stat.count})</span>
+                                </div>
+                                <div className="absolute left-0 bottom-0 h-0.5 bg-orange-500/20 group-hover:bg-orange-500 transition-all w-full" />
+                            </button>
+                        ))
+                        )}
+                    </div>
+                </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </aside>
 
       <div className="flex-1 w-full flex flex-col gap-3">
@@ -343,25 +419,44 @@ export default function ListView({
                     const estadoNormal = String(venta.estado || "Pendiente")
                       .trim()
                       .toLowerCase();
+                    const tieneFacturaCertificada = venta.dte_documentos?.some(
+                      (d: any) => d.estado === "certificado"
+                    );
                     return (
                       <div
                         key={venta.id}
                         className="bg-card border border-border rounded-xl flex flex-col md:flex-row overflow-hidden relative shadow-sm"
                       >
                         <div
-                          onClick={() => onEditClick(venta)}
-                          className="grow flex flex-col md:flex-row cursor-pointer hover:ring-inset hover:ring-2 hover:ring-primary/40 transition-all p-4 rounded-t-xl md:rounded-l-xl md:rounded-tr-none"
+                          onClick={() => {
+                            if (tieneFacturaCertificada) {
+                              Swal.fire({
+                                title: "⚠️ Venta Bloqueada",
+                                text: "Esta venta ya tiene una factura electrónica generada. Para poder modificarla, primero debe anular la factura correspondiente.",
+                                icon: "info",
+                                confirmButtonColor: "#10b981",
+                              });
+                              return;
+                            }
+                            onEditClick(venta);
+                          }}
+                          className={`grow flex flex-col md:flex-row transition-all p-4 rounded-t-xl md:rounded-l-xl md:rounded-tr-none cursor-pointer ${
+                            tieneFacturaCertificada
+                              ? "opacity-90"
+                              : "hover:ring-inset hover:ring-2 hover:ring-primary/40"
+                          }`}
                         >
                           <div className="flex pr-5 flex-col gap-1 w-full md:w-112.5 shrink-0">
                             <span className="font-mono font-bold text-blue-500 text-sm">
-                              #
-                              {String(venta.numero_recibo || 0).padStart(
-                                5,
-                                "0",
-                              )}
+                              Venta #{venta.id ? `${venta.id.substring(0, 3).toUpperCase()}-${venta.id.substring(3, 6).toUpperCase()}` : '---'}
                               <span className="px-2 ml-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-muted text-muted-foreground">
                                 {venta.tipo_venta}
                               </span>
+                              {tieneFacturaCertificada && (
+                                <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                  DTE ✓
+                                </span>
+                              )}
                             </span>
 
                             <h3 className="font-bold text-foreground text-base uppercase mt-1">
@@ -515,6 +610,14 @@ export default function ListView({
           </div>
         )}
       </div>
+
+      <StatsModal 
+        isOpen={!!selectedStatsSeller}
+        onClose={() => setSelectedStatsSeller(null)}
+        sellerId={selectedStatsSeller?.id || null}
+        sellerName={selectedStatsSeller?.name || null}
+        allVentas={data}
+      />
     </div>
   );
 }

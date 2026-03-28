@@ -315,10 +315,10 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                         <div
                           className={`flex items-center gap-3 p-3 md:px-5 md:py-4 ${headerClass}`}
                         >
-                          <span className="font-mono font-black text-xl md:text-2xl shrink-0">
-                            #{String(order.numero_recibo || 0).padStart(5, "0")}
+                          <span className="font-mono font-black text-lg md:text-xl shrink-0">
+                            Venta #{order.id ? `${order.id.substring(0, 3).toUpperCase()}-${order.id.substring(3, 6).toUpperCase()} ` : '---'}
                           </span>
-                          <h3 className="font-black text-lg md:text-xl uppercase truncate grow text-foreground">
+                          <h3 className="font-black text-base md:text-lg uppercase truncate grow text-foreground">
                             {order.ven_clientes?.nombre}
                           </h3>
                           <span

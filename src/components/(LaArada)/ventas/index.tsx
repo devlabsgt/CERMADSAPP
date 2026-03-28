@@ -9,7 +9,7 @@ import {
   Truck,
   ShieldAlert,
 } from "lucide-react";
-import { useVentas } from "./lib/hooks";
+import { useVentas, useVendedores } from "./lib/hooks";
 import SaleModal from "./modals/sale-modal";
 import ReceiptModal from "./modals/receipt-modal";
 import StatusModal from "./modals/status-modal";
@@ -19,15 +19,30 @@ import MonitorView from "./components/monitor-view";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 
 export default function ListadoVentas() {
-  const { data: ventas = [], isLoading } = useVentas();
   const user = useUser();
   const metadata = user?.user_metadata || {};
   const realRole = metadata.rol || user?.role || "user";
   const [effectiveRole, setEffectiveRole] = useState(realRole);
+  const privilegedRoles = ["super", "admin", "rrhh"];
+  const isPrivileged = privilegedRoles.includes(effectiveRole);
+
+  const [selectedVendedor, setSelectedVendedor] = useState<string>("all");
 
   useEffect(() => {
     if (realRole) setEffectiveRole(realRole);
   }, [realRole]);
+
+  useEffect(() => {
+    if (!isPrivileged && user?.id) {
+      setSelectedVendedor(user.id);
+    } else if (isPrivileged && selectedVendedor !== "all" && !privilegedRoles.includes(realRole)) {
+      // Si volvemos a un rol privilegiado pero no somos realmente super/admin, resetear? 
+      // En realidad el usuario es Super real, así que puede volver a 'all' si quiere.
+    }
+  }, [isPrivileged, user?.id]);
+
+  const { data: ventas = [], isLoading } = useVentas(selectedVendedor);
+  const { data: vendedores = [] } = useVendedores();
 
   const allowedRoles = ["ventas", "rrhh", "admin", "super"];
   const canManage = allowedRoles.includes(effectiveRole);
@@ -66,7 +81,7 @@ export default function ListadoVentas() {
   };
 
   return (
-    <div className="p-4 md:p-6 w-full mx-auto space-y-6">
+    <div className="p-4 md:p-6 lg:px-10 w-full space-y-6">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
@@ -109,6 +124,35 @@ export default function ListadoVentas() {
                 <option value="rrhh">RRHH</option>
                 <option value="user">User (Sin permisos)</option>
               </select>
+            </div>
+          )}
+
+          {isPrivileged && (
+            <div className="flex items-center gap-2 bg-muted border px-3 py-1.5 rounded-lg shadow-sm h-10 w-full sm:w-auto justify-center min-w-[150px]">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase hidden sm:inline whitespace-nowrap">
+                Filtro Vendedor:
+              </span>
+              <select
+                value={selectedVendedor}
+                onChange={(e) => setSelectedVendedor(e.target.value)}
+                className="bg-transparent text-xs font-bold outline-none cursor-pointer w-full sm:w-auto"
+              >
+                <option value="all">TODOS LOS VENDEDORES</option>
+                {vendedores.map((v: any) => (
+                  <option key={v.id} value={v.id}>{v.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {!isPrivileged && (
+            <div className="flex items-center gap-2 bg-muted/50 border px-3 py-1.5 rounded-lg shadow-sm h-10 w-full sm:w-auto justify-center min-w-[150px]">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase hidden sm:inline whitespace-nowrap">
+                Vendedor:
+              </span>
+              <span className="text-xs font-bold text-orange-600 truncate">
+                {user?.user_metadata?.nombre || "VENDEDOR ACTUAL"}
+              </span>
             </div>
           )}
 
