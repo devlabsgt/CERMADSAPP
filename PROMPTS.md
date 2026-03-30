@@ -280,7 +280,20 @@ export async function verifyPasskey(
 
 *CREDENCIALES DE ACCESO*
 
-*Usuario:* prueba
-*Contraseña:* y#NKD5@9
 
-_Por seguridad, cambie su clave al ingresar_
+urrhh
+0X4#8R&Q
+
+uadmin
+9OL4$v7Y
+
+uventas
+H9*eaJw#
+
+ucontador
+dp&K#0Ff
+
+prueba
+y#NKD5@9
+
+

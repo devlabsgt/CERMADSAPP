@@ -54,11 +54,20 @@ export default function VerPerfil({ isOpen, onClose, userId }: VerPerfilProps) {
     };
   }, [isOpen]);
 
+  const roleLabels: Record<string, string> = {
+    user: "Usuario (Estándar)",
+    ventas: "Ventas",
+    contabilidad: "Contabilidad",
+    admin: "Administrador",
+    rrhh: "Recursos Humanos",
+    super: "Super Admin",
+  };
+
   let roleOptions: string[] = [];
   if (sessionRole === "super") {
-    roleOptions = ["super", "admin", "rrhh", "user"];
+    roleOptions = ["super", "admin", "contabilidad", "ventas", "rrhh", "user"];
   } else if (sessionRole === "admin") {
-    roleOptions = ["admin", "rrhh", "user"];
+    roleOptions = ["admin", "contabilidad", "ventas", "rrhh", "user"];
   }
 
   const targetIsSuper = profile?.rol === "super";
@@ -125,7 +134,7 @@ export default function VerPerfil({ isOpen, onClose, userId }: VerPerfilProps) {
                   <div className="relative group">
                     <div className="flex items-center bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase">
                       <ShieldCheck size={12} className="mr-1" />
-                      <span>{profile?.rol || "USER"}</span>
+                      <span>{profile?.rol ? roleLabels[profile.rol] || profile.rol : "USUARIO"}</span>
                       {canChangeRole && (
                         <ChevronDown size={10} className="ml-1 opacity-70" />
                       )}
@@ -138,7 +147,7 @@ export default function VerPerfil({ isOpen, onClose, userId }: VerPerfilProps) {
                       >
                         {roleOptions.map((role) => (
                           <option key={role} value={role}>
-                            {role.toUpperCase()}
+                            {roleLabels[role] || role.toUpperCase()}
                           </option>
                         ))}
                       </select>

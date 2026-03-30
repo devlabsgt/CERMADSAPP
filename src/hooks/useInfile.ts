@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { DTEInput, AnulacionDTEInput, INFILEResponse } from "@/types/infile";
 
 // ─── Hook: Certificar DTE ─────────────────────────────────────────────────────
@@ -41,10 +41,10 @@ export function useCertificar() {
     }
   }
 
-  function reset() {
+  const reset = useCallback(() => {
     setError(null);
     setRespuesta(null);
-  }
+  }, []);
 
   return { certificar, loading, error, respuesta, reset };
 }
@@ -87,10 +87,10 @@ export function useAnular() {
     }
   }
 
-  function reset() {
+  const reset = useCallback(() => {
     setError(null);
     setRespuesta(null);
-  }
+  }, []);
 
   return { anular, loading, error, respuesta, reset };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { MagicCard } from "@/components/ui/magic-card";
 import {
   X,
@@ -19,6 +19,7 @@ import { useSignupLogic } from "./hooks";
 import { AnimatePresence, motion } from "framer-motion";
 import { generateStrongPassword } from "@/utils/general/password-generator";
 import { AuroraText } from "@/components/ui/aurora-text";
+import { useUser } from "@/components/(base)/providers/UserProvider";
 
 interface SignUpProps {
   isOpen: boolean;
@@ -85,14 +86,17 @@ const Select = ({
 
 export default function SignUp({ isOpen, onClose }: SignUpProps) {
   const logic = useSignupLogic();
+  const currentUser = useUser();
+  const currentUserRole = currentUser?.user_metadata?.rol || "user";
   const [step, setStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isUsernameEdited, setIsUsernameEdited] = useState(false);
   const [savedData, setSavedData] = useState({ user: "", pass: "" });
   const hasMovedToStep2 = useRef(false);
 
-  useEffect(() => {
-    if (logic.name.trim().length > 3 && step === 1) {
+  const suggestedUsername = useMemo(() => {
+    if (logic.name.trim().length > 3) {
       const cleanName = logic.name
         .toLowerCase()
         .normalize("NFD")
@@ -105,10 +109,13 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
       if (parts.length >= 2) {
         const initial = parts[0][0];
         const surname = parts.length >= 3 ? parts[2] : parts[1];
-        logic.setUsername(initial + surname);
+        return initial + surname;
+      } else if (parts.length === 1) {
+        return parts[0];
       }
     }
-  }, [logic.name, step, logic]);
+    return "";
+  }, [logic.name]);
 
   const resetForm = () => {
     const pass = generateStrongPassword();
@@ -119,6 +126,7 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
     logic.setShowPassword(false);
     setPhoneNumber("");
     setCopied(false);
+    setIsUsernameEdited(false);
     setStep(1);
     setSavedData({ user: "", pass: "" });
     hasMovedToStep2.current = false;
@@ -201,8 +209,9 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted/50 transition-colors"
+                className="p-2 rounded-full hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 <X size={20} className="text-muted-foreground" />
               </button>
@@ -236,14 +245,44 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
 
                     <div className="grid gap-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="username">Usuario</Label>
+                        <Label
+                          htmlFor="username"
+                          className="flex items-center gap-1"
+                        >
+                          Usuario
+                          {suggestedUsername && (
+                            <>
+                              <span className="text-muted-foreground font-normal ml-1 border-l border-border pl-2">Sugerido:</span>{" "}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  logic.setUsername(suggestedUsername);
+                                  setIsUsernameEdited(true);
+                                }}
+                                className="group/sug flex items-center gap-1.5 transition-opacity cursor-pointer"
+                              >
+                                <AuroraText className="text-sm font-black lowercase opacity-80 group-hover/sug:opacity-100 transition-opacity">
+                                  {suggestedUsername}
+                                </AuroraText>
+                                <Wand2
+                                  size={14}
+                                  className="text-primary/70 group-hover/sug:text-primary transition-all group-hover/sug:scale-110 rotate-[15deg]"
+                                />
+                                
+                              </button>
+                            </>
+                          )}
+                        </Label>
                       </div>
                       <Input
                         id="username"
                         name="username"
                         placeholder="ej. jperz"
                         value={logic.username}
-                        onChange={(e) => logic.setUsername(e.target.value)}
+                        onChange={(e) => {
+                          logic.setUsername(e.target.value);
+                          if (!isUsernameEdited) setIsUsernameEdited(true);
+                        }}
                         className={cn(
                           logic.state?.errors?.username &&
                             "border-destructive ring-1 ring-destructive",
@@ -265,9 +304,13 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                         onChange={(e) => logic.setRol(e.target.value)}
                       >
                         <option value="user">Usuario (Estándar)</option>
+                        <option value="contabilidad">Contabilidad</option>
+                        <option value="ventas">Ventas</option>
                         <option value="admin">Administrador</option>
                         <option value="rrhh">Recursos Humanos</option>
-                        <option value="super">Super Admin</option>
+                        {currentUserRole === "super" && (
+                          <option value="super">Super Admin</option>
+                        )}
                       </Select>
                     </div>
 
@@ -275,13 +318,13 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password">Contraseña</Label>
                         <div className="flex items-center gap-1.5 animate-pulse">
-                          <Wand2
-                            size={12}
-                            className="text-primary rotate-[-15deg]"
-                          />
-                          <AuroraText className="text-[10px] font-bold">
+                          <AuroraText className="text-sm font-bold">
                             Autogenerada
                           </AuroraText>
+                          <Wand2
+                            size={14}
+                            className="text-primary rotate-[15deg]"
+                          />
                         </div>
                       </div>
                       <div className="relative">
@@ -290,9 +333,9 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                           name="password"
                           type={logic.showPassword ? "text" : "password"}
                           value={logic.passwordValue}
-                          readOnly
+                          onChange={(e) => logic.setPasswordValue(e.target.value)}
                           className={cn(
-                            "pr-10 bg-muted/20 font-mono cursor-not-allowed border-dashed select-none transition-all",
+                            "pr-10 bg-muted/20 font-mono border-dashed transition-all",
                             !logic.showPassword && "tracking-[0.15em]",
                           )}
                         />
@@ -301,7 +344,7 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                           onClick={() =>
                             logic.setShowPassword(!logic.showPassword)
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground p-1"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground p-1 cursor-pointer"
                         >
                           {logic.showPassword ? (
                             <EyeOff size={16} />
@@ -315,7 +358,7 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                     <button
                       type="submit"
                       disabled={logic.isPending}
-                      className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold uppercase text-[10px] tracking-widest hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                      className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold uppercase text-[10px] tracking-widest hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-sm cursor-pointer"
                     >
                       {logic.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -342,7 +385,7 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                           <button
                             type="button"
                             onClick={handleCopy}
-                            className="flex items-center gap-1.5 text-xs text-primary hover:underline font-bold transition-all"
+                            className="flex items-center gap-1.5 text-xs text-primary hover:underline font-bold transition-all cursor-pointer"
                           >
                             <ClipboardCopy size={14} />
                             Copiar datos
@@ -372,6 +415,7 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                           <span className="text-sm font-bold">
                             {savedData.user}
                           </span>
+                          
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-bold uppercase opacity-70">
@@ -401,9 +445,10 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                           }
                         />
                         <button
+                          type="button"
                           onClick={handleWhatsApp}
                           disabled={phoneNumber.length !== 8}
-                          className="px-5 rounded-xl border border-border bg-background text-foreground font-bold hover:bg-muted/50 disabled:opacity-40 flex items-center gap-2 text-[10px] tracking-widest transition-all h-10 shadow-sm"
+                          className="px-5 rounded-xl border border-border bg-background text-foreground font-bold hover:bg-muted/50 disabled:opacity-40 flex items-center gap-2 text-[10px] tracking-widest transition-all h-10 shadow-sm cursor-pointer"
                         >
                           <MessageCircle size={16} />
                           ENVIAR
@@ -412,8 +457,9 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                     </div>
 
                     <button
+                      type="button"
                       onClick={resetForm}
-                      className="w-full h-12 rounded-xl border border-border bg-background text-foreground font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-muted/50 transition-all active:scale-95 shadow-sm"
+                      className="w-full h-12 rounded-xl border border-border bg-background text-foreground font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-muted/50 transition-all active:scale-95 shadow-sm cursor-pointer"
                     >
                       <ArrowLeft size={16} /> Volver
                     </button>

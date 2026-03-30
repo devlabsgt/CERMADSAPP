@@ -231,48 +231,93 @@ export default function DashboardLaArada() {
   return (
     <>
       <div className="flex-1 w-full px-6 lg:px-12 space-y-10 max-w-550 mx-auto pb-10">
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-          <header className="flex items-center gap-4 md:gap-6 group">
-            <div className="relative size-12 md:size-16 shrink-0 transition-transform duration-300 group-hover:-translate-y-2">
-              <Image
-                src="/logos/LaArada.png"
-                alt="Logo La Arada"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-orange-600 dark:text-orange-500">
-                La Arada
-              </h1>
-              <p className="text-orange-600 dark:text-orange-500 text-sm md:text-lg font-medium italic">
-                Construyendo Junto a ti el Futuro
+        {/* HERO SECTION UNIFICADA */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative w-full rounded-3xl border border-orange-500/20 bg-card p-6 md:p-8 shadow-sm overflow-hidden flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8"
+        >
+          {/* LADO IZQUIERDO: LOGO Y TÍTULO */}
+          <div className="flex flex-col gap-4 shrink-0 relative z-10 w-full xl:w-auto">
+            <header className="flex items-center gap-4 md:gap-6 group">
+              <div className="relative size-12 md:size-16 shrink-0 transition-transform duration-300 group-hover:-translate-y-2">
+                <Image
+                  src="/logos/LaArada.png"
+                  alt="Logo La Arada"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-orange-600 dark:text-orange-500">
+                  La Arada
+                </h1>
+                <p className="text-orange-600 dark:text-orange-500 text-sm md:text-lg font-medium italic leading-none">
+                  Construyendo Junto a ti el Futuro
+                </p>
+              </div>
+            </header>
+
+            {realRole === "super" && (
+              <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/50 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm w-fit">
+                <ShieldAlert className="size-4 text-yellow-600 shrink-0" />
+                <span className="text-[10px] font-bold text-yellow-600 uppercase hidden sm:inline whitespace-nowrap">
+                  Modo Super:
+                </span>
+                <select
+                  value={effectiveRole}
+                  onChange={(e) => setEffectiveRole(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-yellow-700 outline-none cursor-pointer"
+                >
+                  <option value="super">SUPER (Real)</option>
+                  <option value="admin">Admin</option>
+                  <option value="contabilidad">Contabilidad</option>
+                  <option value="ventas">Ventas</option>
+                  <option value="rrhh">RRHH</option>
+                  <option value="user">User</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* LADO DERECHO: SALUDO Y ANIMACIÓN */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between flex-1 relative z-10 w-full xl:pl-8 xl:border-l xl:border-orange-500/10">
+            <div className="flex flex-col gap-1 mt-1 md:mt-0">
+              <h2 className="text-xl md:text-2xl font-black tracking-tighter text-foreground leading-tight">
+                ¡Hola de nuevo, <span className="text-orange-600 dark:text-orange-500">{metadata.nombre?.split(' ')[0] || 'Usuario'}</span>!
+              </h2>
+              <p className="text-xs md:text-sm text-muted-foreground font-medium max-w-lg pr-12 md:pr-0 leading-tight">
+                Es un gusto verte hoy. Gestiona tus operaciones desde tu panel de control.
               </p>
             </div>
-          </header>
 
-          {realRole === "super" && (
-            <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/50 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm w-full xl:w-auto justify-center">
-              <ShieldAlert className="size-5 text-yellow-600 shrink-0" />
-              <span className="text-xs font-bold text-yellow-600 uppercase hidden sm:inline whitespace-nowrap">
-                Modo Super:
-              </span>
-              <select
-                value={effectiveRole}
-                onChange={(e) => setEffectiveRole(e.target.value)}
-                className="bg-transparent text-sm font-bold text-yellow-700 outline-none cursor-pointer w-full sm:w-auto"
-              >
-                <option value="super">SUPER (Real)</option>
-                <option value="admin">Admin</option>
-                <option value="contabilidad">Contabilidad</option>
-                <option value="ventas">Ventas</option>
-                <option value="rrhh">RRHH</option>
-                <option value="user">User (Normal)</option>
-              </select>
+            {/* ELEMENTO VISUAL */}
+            <div className="absolute top-0 right-0 md:static flex items-center justify-center z-10 scale-[0.6] md:scale-75 origin-top-right md:pr-2">
+              <div className="relative flex items-center gap-2">
+                <motion.div
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                  className="w-3 h-12 rounded-full bg-orange-600 dark:bg-orange-500 shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                />
+                <motion.div
+                  animate={{ y: [0, 5, 0] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className="w-3 h-16 rounded-full bg-orange-600 dark:bg-orange-500"
+                />
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                  className="w-3 h-20 rounded-full bg-orange-600 dark:bg-orange-500 shadow-[0_0_15px_rgba(234,88,12,0.4)]"
+                />
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+
+          {/* DECORACIÓN FONDO TARJETA */}
+          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-linear-to-l from-orange-500/5 to-transparent pointer-events-none" />
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl animate-pulse pointer-events-none" />
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -58,6 +58,19 @@ export async function POST(req: NextRequest) {
           .from("dte_documentos")
           .update({ estado: "anulado" })
           .eq("id", dteId);
+          
+        const { data: docData } = await supabase
+          .from("dte_documentos")
+          .select("venta_id")
+          .eq("id", dteId)
+          .single();
+          
+        if (docData?.venta_id) {
+          await supabase
+            .from("ven_ventas")
+            .update({ tipo_comprobante: "Recibo" })
+            .eq("id", docData.venta_id);
+        }
       }
     }
 

@@ -6,6 +6,7 @@ import type {
   NotaCreditoDebitoInput,
   AnulacionDTEInput,
   INFILEResponse,
+  AfiliacionIVA,
 } from "@/types/infile";
 
 // ─── Configuración ────────────────────────────────────────────────────────────
@@ -16,7 +17,16 @@ const INFILE_USUARIO_FIRMA = process.env.INFILE_USUARIO_FIRMA!;
 const INFILE_LLAVE_FIRMA = process.env.INFILE_LLAVE_FIRMA!;
 const INFILE_USUARIO_API = process.env.INFILE_USUARIO_API!;
 const INFILE_LLAVE_API = process.env.INFILE_LLAVE_API!;
-const INFILE_NIT_EMISOR = process.env.INFILE_NIT_EMISOR!;
+const INFILE_NIT_EMISOR = process.env.NEXT_PUBLIC_INFILE_NIT_EMISOR!;
+const INFILE_EMISOR_NOMBRE = process.env.NEXT_PUBLIC_INFILE_EMISOR_NOMBRE!;
+const INFILE_EMISOR_COMERCIAL = process.env.NEXT_PUBLIC_INFILE_EMISOR_COMERCIAL!;
+const INFILE_EMISOR_DIRECCION = process.env.NEXT_PUBLIC_INFILE_EMISOR_DIRECCION!;
+const INFILE_EMISOR_MUNICIPIO = process.env.NEXT_PUBLIC_INFILE_EMISOR_MUNICIPIO!;
+const INFILE_EMISOR_DEPTO = process.env.NEXT_PUBLIC_INFILE_EMISOR_DEPTO!;
+const INFILE_EMISOR_CP = process.env.NEXT_PUBLIC_INFILE_EMISOR_CP!;
+const INFILE_EMISOR_AFILIACION = process.env.NEXT_PUBLIC_INFILE_EMISOR_AFILIACION! as AfiliacionIVA;
+const INFILE_EMISOR_ESTABLECIMIENTO = process.env.NEXT_PUBLIC_INFILE_EMISOR_ESTABLECIMIENTO!;
+const INFILE_EMISOR_TELEFONO = process.env.NEXT_PUBLIC_INFILE_EMISOR_TELEFONO || "";
 
 // ─── Headers comunes ─────────────────────────────────────────────────────────
 
@@ -307,6 +317,20 @@ export async function anularDTE(
 
 // ─── Helper: obtener el NIT del emisor desde .env ────────────────────────────
 
-export function getNitEmisor(): string {
-  return INFILE_NIT_EMISOR;
+export function getEmisorConfig() {
+  return {
+    nitEmisor: INFILE_NIT_EMISOR,
+    nombreEmisor: INFILE_EMISOR_NOMBRE,
+    nombreComercial: INFILE_EMISOR_COMERCIAL,
+    codigoEstablecimiento: INFILE_EMISOR_ESTABLECIMIENTO,
+    afiliacionIVA: INFILE_EMISOR_AFILIACION,
+    telefono: INFILE_EMISOR_TELEFONO,
+    direccion: {
+      direccion: INFILE_EMISOR_DIRECCION,
+      codigoPostal: INFILE_EMISOR_CP,
+      municipio: INFILE_EMISOR_MUNICIPIO,
+      departamento: INFILE_EMISOR_DEPTO,
+      pais: "GT",
+    },
+  };
 }

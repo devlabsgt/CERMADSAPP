@@ -104,6 +104,19 @@ export async function POST(req: NextRequest) {
         if (itemsError) {
           console.error("[INFILE] Error guardando dte_items:", itemsError);
         }
+
+        if (input.ventaId) {
+          const isCF = input.receptor.idReceptor === "CF";
+          const tipoComp = isCF ? "Factura CF" : "Factura NIT";
+          const { error: updateError } = await supabase
+            .from("ven_ventas")
+            .update({ tipo_comprobante: tipoComp })
+            .eq("id", input.ventaId);
+            
+          if (updateError) {
+            console.error("[INFILE] Error actualizando tipo_comprobante:", updateError);
+          }
+        }
       }
     }
 

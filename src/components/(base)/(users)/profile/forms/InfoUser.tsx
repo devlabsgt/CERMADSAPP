@@ -307,6 +307,7 @@ export function InfoUser({ userId, canEdit }: InfoUserProps) {
                   </label>
                   {canEdit && (
                     <button
+                      type="button"
                       onClick={() => {
                         const p = generateStrongPassword();
                         setFormData((prev) => ({
@@ -317,9 +318,10 @@ export function InfoUser({ userId, canEdit }: InfoUserProps) {
                         setHasChanges(true);
                         setShowPass(true);
                       }}
-                      className="text-[10px] flex items-center gap-1 font-bold hover:underline text-primary"
+                      className="text-sm flex items-center gap-1.5 font-bold hover:underline text-primary cursor-pointer transition-opacity"
                     >
-                      <Wand2 size={10} /> <AuroraText>Generar</AuroraText>
+                      <AuroraText>Generar Contraseña</AuroraText>
+                      <Wand2 size={14} className="rotate-[15deg]" />
                     </button>
                   )}
                 </div>
@@ -342,8 +344,9 @@ export function InfoUser({ userId, canEdit }: InfoUserProps) {
                     )}
                   />
                   <button
+                    type="button"
                     onClick={() => setShowPass(!showPass)}
-                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                   >
                     {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
@@ -434,9 +437,10 @@ export function InfoUser({ userId, canEdit }: InfoUserProps) {
             />
             {canEdit && (
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={!hasChanges || mutation.isPending}
-                className="w-full h-9 mt-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-all"
+                className="w-full h-9 mt-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
               >
                 {mutation.isPending ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -491,8 +495,9 @@ const SuccessView = ({
             Actualizado
           </span>
           <button
+            type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1 text-[10px] text-primary font-bold hover:underline"
+            className="flex items-center gap-1 text-[10px] text-primary font-bold hover:underline cursor-pointer"
           >
             {copied ? <CheckCircle2 size={12} /> : <ClipboardCopy size={12} />}{" "}
             {copied ? "Copiado" : "Copiar"}
@@ -522,6 +527,7 @@ const SuccessView = ({
           className="flex-1 h-9 rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <button
+          type="button"
           onClick={() =>
             window.open(
               `https://wa.me/502${inputPhone}?text=${encodeURIComponent(
@@ -531,15 +537,16 @@ const SuccessView = ({
             )
           }
           disabled={inputPhone.length !== 8}
-          className="h-9 px-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-md disabled:opacity-50 transition-colors shadow-sm"
+          className="h-9 px-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-md disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
         >
           <MessageCircle size={16} />
         </button>
       </div>
 
       <button
+        type="button"
         onClick={onBack}
-        className="w-full h-9 border rounded-lg text-xs font-bold uppercase hover:bg-muted flex items-center justify-center gap-2 transition-colors"
+        className="w-full h-9 border rounded-lg text-xs font-bold uppercase hover:bg-muted flex items-center justify-center gap-2 transition-colors cursor-pointer"
       >
         <ArrowLeft size={14} /> Volver
       </button>

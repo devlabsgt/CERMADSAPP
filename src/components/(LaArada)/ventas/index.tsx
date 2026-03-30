@@ -32,28 +32,26 @@ export default function ListadoVentas() {
     if (realRole) setEffectiveRole(realRole);
   }, [realRole]);
 
-  useEffect(() => {
-    if (!isPrivileged && user?.id) {
-      setSelectedVendedor(user.id);
-    } else if (isPrivileged && selectedVendedor !== "all" && !privilegedRoles.includes(realRole)) {
-      // Si volvemos a un rol privilegiado pero no somos realmente super/admin, resetear? 
-      // En realidad el usuario es Super real, así que puede volver a 'all' si quiere.
-    }
-  }, [isPrivileged, user?.id]);
-
-  const { data: ventas = [], isLoading } = useVentas(selectedVendedor);
-  const { data: vendedores = [] } = useVendedores();
-
-  const allowedRoles = ["ventas", "rrhh", "admin", "super"];
-  const canManage = allowedRoles.includes(effectiveRole);
-
-  const [viewMode, setViewMode] = useState<
-    "ventas" | "monitor"
-  >("ventas");
+  const [viewMode, setViewMode] = useState<"ventas" | "monitor">("ventas");
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
   const [statusVenta, setStatusVenta] = useState<any>(null);
   const [ventaToEdit, setVentaToEdit] = useState<any>(null);
+
+  useEffect(() => {
+    if (!isPrivileged && user?.id) {
+      setSelectedVendedor(user.id);
+    }
+  }, [isPrivileged, user?.id]);
+
+  // Lógica de visibilidad dinámica
+  const queryVendedorId = viewMode === "monitor" ? "all" : selectedVendedor;
+
+  const { data: ventas = [], isLoading } = useVentas(queryVendedorId);
+  const { data: vendedores = [] } = useVendedores();
+
+  const allowedRoles = ["ventas", "rrhh", "admin", "super"];
+  const canManage = allowedRoles.includes(effectiveRole);
 
   useEffect(() => {
     if (user && !canManage) {
@@ -151,7 +149,7 @@ export default function ListadoVentas() {
                 Vendedor:
               </span>
               <span className="text-xs font-bold text-orange-600 truncate">
-                {user?.user_metadata?.nombre || "VENDEDOR ACTUAL"}
+                {user?.user_metadata?.name || "VENDEDOR ACTUAL"}
               </span>
             </div>
           )}

@@ -422,10 +422,24 @@ export default function ListView({
                     const tieneFacturaCertificada = venta.dte_documentos?.some(
                       (d: any) => d.estado === "certificado"
                     );
+                    const isEntregada = estadoNormal === "entregado";
+                    const isAnulada = estadoNormal === "anulado";
+
+                    let borderColor = "border-border";
+                    if (isAnulada) {
+                      borderColor = "border-red-400/50 ring-1 ring-red-400/5";
+                    } else if (isEntregada) {
+                      if (tieneFacturaCertificada) {
+                        borderColor = "border-sky-400/50 ring-1 ring-sky-400/10";
+                      } else {
+                        borderColor = "border-emerald-400/50 ring-1 ring-emerald-400/10";
+                      }
+                    }
+
                     return (
                       <div
                         key={venta.id}
-                        className="bg-card border border-border rounded-xl flex flex-col md:flex-row overflow-hidden relative shadow-sm"
+                        className={`bg-card border rounded-xl flex flex-col md:flex-row overflow-hidden relative shadow-sm transition-all ${borderColor}`}
                       >
                         <div
                           onClick={() => {
@@ -453,7 +467,7 @@ export default function ListView({
                                 {venta.tipo_venta}
                               </span>
                               {tieneFacturaCertificada && (
-                                <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800">
                                   DTE ✓
                                 </span>
                               )}
@@ -516,7 +530,7 @@ export default function ListView({
                                 Vendedor:
                               </span>
                               <span className="text-xs italic text-muted-foreground">
-                                {venta.vendedor?.nombre || "-"}
+                                {venta.vendedor?.nombre || "-"}, a las {venta.created_at ? new Date(venta.created_at).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--"} hrs
                               </span>
                             </div>
                           </div>

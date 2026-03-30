@@ -8,9 +8,15 @@ import {
   Ban,
   Calculator,
   FileText,
+  Eye,
+  ScrollText,
+  FileCheck2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useVentas } from "@/components/(LaArada)/ventas/lib/hooks";
+import ReceiptModal from "@/components/(LaArada)/ventas/modals/receipt-modal";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -25,9 +31,20 @@ function getFileName(ext: string) {
 export default function ContabilidadView() {
   const { data: ventas = [], isLoading } = useVentas();
 
+  const now = new Date();
+  const defaultMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const [monthYear, setMonthYear] = useState(defaultMonthYear);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // ─── Pagination State ────────────────────────────────────────────────────────
+  const [pageSize, setPageSize] = useState<number | string>(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const orders = useMemo(() => {
     return [...ventas].sort(
@@ -39,67 +56,137 @@ export default function ContabilidadView() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order: any) => {
-      const dateStr = String(
-        order.fecha_entrega || order.created_at,
-      ).substring(0, 10);
-      const matchStart = startDate ? dateStr >= startDate : true;
-      const matchEnd = endDate ? dateStr <= endDate : true;
+      const timestamp = order.created_at;
+      if (!timestamp) return false;
+
+      // Usar created_at para obtener la fecha y hora REAL de la venta
+      const localDateObj = new Date(timestamp);
+      const localYearMonth = localDateObj.toLocaleDateString("en-CA", {
+        timeZone: "America/Guatemala",
+      }).substring(0, 7); // "YYYY-MM"
+      
+      const localFullDate = localDateObj.toLocaleDateString("en-CA", {
+        timeZone: "America/Guatemala",
+      }); // "YYYY-MM-DD"
+      
+      let matchDate = true;
+      if (startDate || endDate) {
+        const matchStart = startDate ? localFullDate >= startDate : true;
+        const matchEnd = endDate ? localFullDate <= endDate : true;
+        matchDate = matchStart && matchEnd;
+      } else if (monthYear) {
+        matchDate = localYearMonth === monthYear;
+      }
 
       const term = searchTerm.toLowerCase();
       const matchSearch =
         !term ||
         (order.ven_clientes?.nombre || "").toLowerCase().includes(term) ||
         (order.ven_clientes?.nit || "").toLowerCase().includes(term) ||
-        String(order.numero_recibo || "").includes(term);
+        String(order.numero_recibo || "").includes(term) ||
+        String(order.id || "").toLowerCase().includes(term);
 
-      return matchStart && matchEnd && matchSearch;
+      return matchDate && matchSearch;
     });
-  }, [orders, startDate, endDate, searchTerm]);
+  }, [orders, startDate, endDate, monthYear, searchTerm]);
+
+  // Reset pagination on filter change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [filteredOrders, pageSize]);
+
+  const totalPages = useMemo(() => {
+    const size = typeof pageSize === "string" ? filteredOrders.length : pageSize;
+    return Math.max(1, Math.ceil(filteredOrders.length / (size || 1)));
+  }, [filteredOrders, pageSize]);
+
+  const paginatedOrders = useMemo(() => {
+    if (pageSize === "all") return filteredOrders;
+    const size = Number(pageSize);
+    const start = (currentPage - 1) * size;
+    return filteredOrders.slice(start, start + size);
+  }, [filteredOrders, pageSize, currentPage]);
 
   const stats = useMemo(() => {
     let totalEntregado = 0;
+    let baseImponible = 0;
+    let iva = 0;
     let countAnulados = 0;
     let totalAnulados = 0;
 
     filteredOrders.forEach((o: any) => {
       const total = Number(o.total || 0);
       const estado = String(o.estado || "Pendiente").trim().toLowerCase();
+      const dteCertificado = (o.dte_documentos || []).find((d: any) => d.estado === "certificado");
+
       if (estado === "entregado") {
         totalEntregado += total;
+        if (dteCertificado) {
+          const base = total / 1.12;
+          baseImponible += base;
+          iva += (total - base);
+        }
       } else if (estado === "anulado") {
         countAnulados++;
         totalAnulados += total;
       }
     });
 
-    const baseImponible = totalEntregado / 1.12;
-    const iva = totalEntregado - baseImponible;
     return { totalEntregado, baseImponible, iva, countAnulados, totalAnulados };
   }, [filteredOrders]);
 
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "";
+    const formatter = new Intl.DateTimeFormat("es-GT", {
+      timeZone: "America/Guatemala",
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false, // Usando formato 24h según el ejemplo "13:00"
+    });
+    const parts = formatter.formatToParts(new Date(timestamp));
+    const find = (t: string) => parts.find((p) => p.type === t)?.value || "";
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace(".", "");
+    
+    return `${cap(find("weekday"))} ${find("day")}/${cap(find("month"))}/${find("year")}, ${find("hour")}:${find("minute")}`;
+  };
+
+  const formatMoney = (val: number | string) => {
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    if (isNaN(num)) return "0.00";
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
   // ─── Helpers ────────────────────────────────────────────────────────────────
   const buildRows = () =>
-    filteredOrders.map((o: any) => {
-      const date = new Date(o.fecha_entrega || o.created_at).toLocaleDateString("es-GT");
-      const tipoComprobante = o.tipo_comprobante || "Recibo";
-      const nit = ["NIT", "C/F"].includes(tipoComprobante)
-        ? o.ven_clientes?.nit || "C/F"
-        : "---";
+    filteredOrders.map((o: any, index: number) => {
+      const date = formatDate(o.created_at);
+      const dteCertificado = (o.dte_documentos || []).find((d: any) => d.estado === "certificado");
+      const isFactura = !!dteCertificado;
+      const totalNum = Number(o.total || 0);
+
       return {
+        "No.": index + 1,
         Fecha: date,
-        "Tipo Doc": tipoComprobante,
-        NIT: nit,
         Cliente: o.ven_clientes?.nombre || "",
-        "No. Recibo": String(o.numero_recibo || 0).padStart(5, "0"),
-        Tipo: o.tipo_venta || "Contado",
+        "No. Venta": `#${o.id?.substring(0, 3).toUpperCase()}-${o.id?.substring(3, 6).toUpperCase()}`,
+        Comprobante: isFactura ? "FEL" : "Recibo",
         Estado: o.estado || "Pendiente",
-        "Total (Q)": Number(o.total || 0).toFixed(2),
+        "Venta (Q)": isFactura ? formatMoney(totalNum / 1.12) : formatMoney(totalNum),
+        "IVA (Q)": isFactura ? formatMoney(totalNum - totalNum / 1.12) : "---",
+        "Total (Q)": formatMoney(totalNum),
       };
     });
 
   // ─── CSV ────────────────────────────────────────────────────────────────────
   const exportCSV = () => {
-    const headers = ["Fecha", "Tipo Doc", "NIT", "Cliente", "No. Recibo", "Tipo", "Estado", "Total (Q)"];
+    const headers = ["Fecha", "Cliente", "No. Venta", "Tipo", "Estado", "Venta (Q)", "IVA (Q)", "Total (Q)"];
     const rows = buildRows().map((r) => headers.map((h) => `"${r[h as keyof typeof r]}"`).join(","));
     const csvContent = [headers.join(","), ...rows].join("\n");
     const dataUri = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
@@ -143,24 +230,28 @@ export default function ContabilidadView() {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `Total Facturado: Q${stats.totalEntregado.toFixed(2)}   Base Imponible: Q${stats.baseImponible.toFixed(2)}   IVA (12%): Q${stats.iva.toFixed(2)}   Anulados: Q${stats.totalAnulados.toFixed(2)}`,
+      `Total Facturado: Q${formatMoney(stats.totalEntregado)}   Base Imponible: Q${formatMoney(stats.baseImponible)}   IVA (12%): Q${formatMoney(stats.iva)}   Anulados: Q${formatMoney(stats.totalAnulados)}`,
       14, 22,
     );
 
     autoTable(doc, {
       startY: 28,
-      head: [["Fecha", "No. Doc", "Tipo Doc", "NIT", "Cliente", "Tipo", "Estado", "Total (Q)"]],
-      body: filteredOrders.map((o: any) => {
-        const tipo = o.tipo_comprobante || "Recibo";
+      head: [["No.", "Fecha", "No. Venta", "Cliente", "Comprobante", "Estado", "Venta (Q)", "IVA (Q)", "Total (Q)"]],
+      body: filteredOrders.map((o: any, index: number) => {
+        const formattedDate = formatDate(o.created_at);
+        const dteCertificado = (o.dte_documentos || []).find((d: any) => d.estado === "certificado");
+        const isFactura = !!dteCertificado;
+        const totalNum = Number(o.total || 0);
         return [
-          new Date(o.fecha_entrega || o.created_at).toLocaleDateString("es-GT"),
-          `#${String(o.numero_recibo || 0).padStart(5, "0")}`,
-          tipo,
-          ["NIT", "C/F"].includes(tipo) ? o.ven_clientes?.nit || "C/F" : "---",
+          index + 1,
+          formattedDate,
+          `#${o.id?.substring(0, 3).toUpperCase()}-${o.id?.substring(3, 6).toUpperCase()}`,
           o.ven_clientes?.nombre || "",
-          o.tipo_venta || "Contado",
+          isFactura ? "FEL" : "Recibo",
           o.estado || "Pendiente",
-          `Q${Number(o.total || 0).toFixed(2)}`,
+          `Q${isFactura ? formatMoney(totalNum / 1.12) : formatMoney(totalNum)}`,
+          isFactura ? `Q${formatMoney(totalNum - totalNum / 1.12)}` : "---",
+          `Q${formatMoney(totalNum)}`,
         ];
       }),
       styles: { fontSize: 7, cellPadding: 2 },
@@ -188,7 +279,7 @@ export default function ContabilidadView() {
   }
 
   return (
-    <div className="p-4 md:p-6 w-full mx-auto space-y-6">
+    <div className="p-4 md:p-6 w-full lg:max-w-[95%] mx-auto space-y-6">
       <div>
         <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
           <Calculator className="size-5 md:size-6 text-emerald-500" />
@@ -201,32 +292,53 @@ export default function ContabilidadView() {
 
       {/* Filters + Export Buttons */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-card p-4 rounded-xl border shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <div className="space-y-1.5">
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto overflow-x-auto pb-2">
+          <div className="space-y-1.5 min-w-[140px]">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">Mes / Año</label>
+            <input
+              type="month"
+              value={monthYear}
+              onChange={(e) => {
+                setMonthYear(e.target.value);
+                if (e.target.value) {
+                  setStartDate("");
+                  setEndDate("");
+                }
+              }}
+              className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <div className="space-y-1.5 min-w-[130px]">
             <label className="text-[10px] font-bold uppercase text-muted-foreground">Desde</label>
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                if (e.target.value) setMonthYear("");
+              }}
               className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-[130px]">
             <label className="text-[10px] font-bold uppercase text-muted-foreground">Hasta</label>
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                if (e.target.value) setMonthYear("");
+              }}
               className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <div className="space-y-1.5 flex-1">
-            <label className="text-[10px] font-bold uppercase text-muted-foreground">Buscar Cliente / NIT</label>
+          <div className="space-y-1.5 min-w-[200px] flex-1">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Buscar</label>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar..."
+                placeholder="Cliente o No. Venta"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-10 pl-9 pr-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
@@ -264,91 +376,171 @@ export default function ContabilidadView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Facturado (Entregados)"
-          value={`Q${stats.totalEntregado.toFixed(2)}`}
+          value={`Q${formatMoney(stats.totalEntregado)}`}
           icon={<FileSpreadsheet className="size-4 text-blue-500" />}
         />
         <StatCard
           label="Base Imponible"
-          value={`Q${stats.baseImponible.toFixed(2)}`}
+          value={`Q${formatMoney(stats.baseImponible)}`}
           icon={<Calculator className="size-4 text-emerald-500" />}
         />
         <StatCard
           label="IVA Débito (12%)"
-          value={`Q${stats.iva.toFixed(2)}`}
+          value={`Q${formatMoney(stats.iva)}`}
           icon={<Calculator className="size-4 text-orange-500" />}
         />
         <StatCard
           label={`Anulados (${stats.countAnulados})`}
-          value={`Q${stats.totalAnulados.toFixed(2)}`}
+          value={`Q${formatMoney(stats.totalAnulados)}`}
           icon={<Ban className="size-4 text-red-500" />}
           isAlert
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-muted/50 border-b">
-              <tr className="text-[10px] uppercase text-muted-foreground font-black tracking-wider">
-                <th className="p-4">Fecha</th>
-                <th className="p-4">No. Doc</th>
-                <th className="p-4">Tipo Doc</th>
-                <th className="p-4">NIT</th>
-                <th className="p-4">Cliente</th>
+      {/* Table Container narrower on Desktop */}
+      <div className="lg:max-w-[80%] mx-auto w-full">
+        <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-muted/50 border-b">
+                <tr className="text-[10px] uppercase text-muted-foreground font-black tracking-wider">
+                  <th className="p-4 w-[1%] whitespace-nowrap text-center">No.</th>
+                  <th className="p-4 w-[1%] whitespace-nowrap">Fecha</th>
+                  <th className="p-4 w-[1%] whitespace-nowrap">No. Venta</th>
+                  <th className="p-4 w-full text-left">Cliente</th>
                 <th className="p-4">Estado</th>
+                <th className="p-4 text-right">Venta</th>
+                <th className="p-4 text-right">IVA</th>
                 <th className="p-4 text-right">Total</th>
+                <th className="p-4 text-center">Ver Comprobante</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filteredOrders.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground font-bold uppercase text-xs">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground font-bold uppercase text-xs">
                     No se encontraron registros
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order: any) => (
-                  <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="p-4">
-                      {new Date(order.fecha_entrega || order.created_at).toLocaleDateString("es-GT")}
-                    </td>
-                    <td className="p-4 font-mono font-bold text-orange-500">
-                      #{String(order.numero_recibo || 0).padStart(5, "0")}
-                    </td>
-                    <td className="p-4 text-[11px] font-bold text-muted-foreground uppercase">
-                      {order.tipo_comprobante || "Recibo"}
-                    </td>
-                    <td className="p-4 font-mono">
-                      {["NIT", "C/F"].includes(order.tipo_comprobante)
-                        ? order.ven_clientes?.nit || "C/F"
-                        : "---"}
-                    </td>
-                    <td className="p-4 font-bold truncate max-w-50">{order.ven_clientes?.nombre}</td>
-                    <td className="p-4">
-                      <span
-                        className={cn(
-                          "px-2 py-1 rounded-full text-[10px] font-black uppercase",
-                          String(order.estado).toLowerCase() === "entregado"
-                            ? "bg-green-500/10 text-green-600"
-                            : String(order.estado).toLowerCase() === "anulado"
-                              ? "bg-red-500/10 text-red-600"
-                              : "bg-amber-500/10 text-amber-600",
+                paginatedOrders.map((order: any, idx: number) => {
+                  const sequenceNumber = pageSize === "all" ? idx + 1 : (currentPage - 1) * Number(pageSize) + idx + 1;
+                  const dteCertificado = (order.dte_documentos || []).find((d: any) => d.estado === "certificado");
+                  const isFactura = !!dteCertificado;
+                  const isAnulado = String(order.estado || "").toLowerCase() === "anulado";
+                  const total = Number(order.total || 0);
+
+                  return (
+                    <tr key={order.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-4 text-center font-bold text-muted-foreground text-[10px] w-[1%]">
+                        {sequenceNumber}
+                      </td>
+                      <td className="p-4 font-bold whitespace-nowrap text-xs">
+                        {formatDate(order.created_at)}
+                      </td>
+                      <td className="p-4 font-mono font-bold text-orange-500 whitespace-nowrap text-xs">
+                        #{order.id?.substring(0, 3).toUpperCase()}-{order.id?.substring(3, 6).toUpperCase()}
+                      </td>
+                      <td className="p-4 font-bold text-xs">
+                        {order.ven_clientes?.nombre}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={cn(
+                            "px-2 py-1 rounded-full text-[9px] font-black uppercase",
+                            String(order.estado).toLowerCase() === "entregado"
+                              ? "bg-green-500/10 text-green-600"
+                              : String(order.estado).toLowerCase() === "anulado"
+                                ? "bg-red-500/10 text-red-600"
+                                : "bg-amber-500/10 text-amber-600",
+                          )}
+                        >
+                          {order.estado || "Pendiente"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right font-mono text-gray-600 text-xs">
+                        Q{isFactura ? formatMoney(total / 1.12) : formatMoney(total)}
+                      </td>
+                      <td className="p-4 text-right font-mono text-gray-500 text-[10px]">
+                        {isFactura ? `Q${formatMoney(total - total / 1.12)}` : '---'}
+                      </td>
+                      <td className="p-4 text-right font-black text-xs">
+                        Q{formatMoney(total)}
+                      </td>
+                      <td className="p-4 text-center">
+                        {isAnulado ? (
+                          <span className="w-24 inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md bg-red-50 text-red-500 font-bold text-[10px] uppercase border border-red-100 cursor-not-allowed">
+                            <Ban className="size-3 shrink-0" />
+                            <span>Anulado</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => { setSelectedVentaId(order.id); setIsReceiptModalOpen(true); }}
+                            className={cn(
+                              "w-24 inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md transition-colors font-bold text-[10px] uppercase cursor-pointer",
+                              isFactura
+                                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                                : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                            )}
+                          >
+                            {isFactura ? <FileCheck2 className="size-3 shrink-0" /> : <Eye className="size-3 shrink-0" />}
+                            <span>{isFactura ? "FEL" : "Recibo"}</span>
+                          </button>
                         )}
-                      >
-                        {order.estado || "Pendiente"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right font-black">
-                      Q{Number(order.total || 0).toFixed(2)}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Custom Pagination Container */}
+        <div className="bg-card border-t p-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-md hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <div className="text-sm font-bold bg-muted/50 px-3 py-1 rounded-md min-w-[60px] text-center">
+              {currentPage} / {totalPages}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+               className="p-1.5 rounded-md hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="h-8 px-2 text-[10px] font-bold uppercase bg-background border rounded-md outline-none focus:ring-1 focus:ring-primary/20"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value="all">Todos</option>
+            </select>
+          </div>
+        </div>
       </div>
+    </div>
+
+      {/* Recibo / Factura Modal, Readonly for Contabilidad */}
+      <ReceiptModal 
+        isOpen={isReceiptModalOpen} 
+        onClose={() => { setIsReceiptModalOpen(false); setSelectedVentaId(null); }} 
+        ventaId={selectedVentaId}
+        isReadonly={true}
+      />
     </div>
   );
 }

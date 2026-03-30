@@ -81,12 +81,11 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
   );
 
   const counts = useMemo(() => {
-    const c = { Pendiente: 0, Entregado: 0 };
+    const c = { Pendiente: 0, Entregado: 0, Anulado: 0 };
     data.forEach((order: any) => {
       const estado = String(order.estado || "Pendiente")
         .trim()
         .toLowerCase();
-      if (estado === "anulado") return;
 
       const orderDate = getGuatemalaDateParts(getOrderDateString(order));
       const matchAnio = orderDate.year === filtroAnio;
@@ -97,6 +96,7 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
       if (matchAnio && matchMes && matchSemana) {
         if (estado === "pendiente") c.Pendiente++;
         else if (estado === "entregado") c.Entregado++;
+        else if (estado === "anulado") c.Anulado++;
       }
     });
     return c;
@@ -118,7 +118,6 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
       const estado = String(order.estado || "Pendiente")
         .trim()
         .toLowerCase();
-      if (estado === "anulado") return false;
 
       const matchEstado =
         filtroEstado === "" || estado === filtroEstado.trim().toLowerCase();
@@ -234,6 +233,10 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                 v: "Entregado",
                 c: "green",
               },
+              {
+                v: "Anulado",
+                c: "red",
+              },
             ]
               .filter(({ v }) => counts[v as keyof typeof counts] > 0)
               .map(({ v, c }) => (
@@ -295,22 +298,28 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                       .trim()
                       .toLowerCase();
                     const isPendiente = estadoNormalizado === "pendiente";
+                    const isEntregado = estadoNormalizado === "entregado";
+                    const isAnulado = estadoNormalizado === "anulado";
 
-                    const bgClass = isPendiente
-                      ? "bg-amber-500/10 border-amber-500/50 hover:border-amber-500 dark:bg-amber-500/5"
-                      : "bg-green-500/10 border-green-500/50 hover:border-green-500 dark:bg-green-500/5";
-                    const headerClass = isPendiente
-                      ? "bg-amber-500/20 border-b-2 border-amber-500/30 text-amber-700 dark:text-amber-400"
-                      : "bg-green-500/20 border-b-2 border-green-500/30 text-green-700 dark:text-green-400";
-                    const badgeClass = isPendiente
-                      ? "bg-amber-500 text-white"
-                      : "bg-green-500 text-white";
+                    let bgClass = "bg-amber-500/10 border-amber-500/50 hover:border-amber-500 dark:bg-amber-500/5";
+                    let headerClass = "bg-amber-500/20 border-b-2 border-amber-500/30 text-amber-700 dark:text-amber-400";
+                    let badgeClass = "bg-amber-500 text-white";
+
+                    if (isEntregado) {
+                      bgClass = "bg-green-500/10 border-green-500/50 hover:border-green-500 dark:bg-green-500/5";
+                      headerClass = "bg-green-500/20 border-b-2 border-green-500/30 text-green-700 dark:text-green-400";
+                      badgeClass = "bg-green-500 text-white";
+                    } else if (isAnulado) {
+                      bgClass = "bg-red-500/5 border-red-500/20 hover:border-red-500/40 dark:bg-red-500/5";
+                      headerClass = "bg-red-500/10 border-b-2 border-red-500/20 text-red-700 dark:text-red-400";
+                      badgeClass = "bg-red-600 text-white";
+                    }
 
                     return (
                       <div
                         key={order.id}
                         onClick={() => isPendiente && onStatusClick(order)}
-                        className={`border-[3px] rounded-2xl flex flex-col overflow-hidden relative transition-all shadow-sm h-full ${bgClass} ${isPendiente ? "cursor-pointer active:scale-[0.98]" : "opacity-80 grayscale-[0.2]"}`}
+                        className={`border-[3px] rounded-2xl flex flex-col overflow-hidden relative transition-all shadow-sm h-full ${bgClass} ${isPendiente ? "cursor-pointer active:scale-[0.98]" : "opacity-90 grayscale-[0.1]"}`}
                       >
                         <div
                           className={`flex items-center gap-3 p-3 md:px-5 md:py-4 ${headerClass}`}
@@ -350,7 +359,7 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                               <span className="font-bold text-[10px] uppercase tracking-wider opacity-70">
                                 Observaciones
                               </span>
-                              <p className="text-sm font-medium italic wrap-break-word">
+                              <p className="text-base md:text-lg font-black wrap-break-word leading-tight">
                                 {order.observaciones}
                               </p>
                             </div>

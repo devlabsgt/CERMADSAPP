@@ -28,7 +28,7 @@ export async function getVentas(vendedorId?: string) {
       `
       *,
       ven_clientes (nombre, nit),
-      dte_documentos (estado),
+      dte_documentos (id, estado, uuid_infile, serie, numero, id_receptor, nombre_receptor, gran_total, fecha_certificacion),
       ven_detalle (
         id,
         producto_id,

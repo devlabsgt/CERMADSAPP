@@ -25,7 +25,7 @@ export function VerUsuarios() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number | "all">(5);
+  const [pageSize, setPageSize] = useState<number | "all">(10);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
@@ -38,6 +38,15 @@ export function VerUsuarios() {
   const handleCloseSignUp = () => {
     setIsSignUpOpen(false);
     refetch();
+  };
+
+  const roleLabels: Record<string, string> = {
+    user: "Usuario (Estándar)",
+    ventas: "Ventas",
+    contabilidad: "Contabilidad",
+    admin: "Administrador",
+    rrhh: "Recursos Humanos",
+    super: "Super Admin",
   };
 
   const availableRoles = useMemo(() => {
@@ -111,7 +120,7 @@ export function VerUsuarios() {
               <p className="text-xs">
                 Rol Actual:{" "}
                 <span className="text-[10px] underline font-bold uppercase">
-                  {userRole}
+                  {roleLabels[userRole] || userRole}
                 </span>
               </p>
             </div>
@@ -145,7 +154,7 @@ export function VerUsuarios() {
               <select
                 value={pageSize}
                 onChange={handlePageSizeChange}
-                className="h-9 rounded-md border border-border bg-card px-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                className="h-9 rounded-md border border-border bg-card px-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shrink-0"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -154,7 +163,7 @@ export function VerUsuarios() {
 
               {!isAll && (
                 <>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
@@ -162,6 +171,9 @@ export function VerUsuarios() {
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
+                    <span className="text-xs font-mono text-muted-foreground min-w-[30px] text-center font-bold">
+                      {currentPage}/{totalPages}
+                    </span>
                     <button
                       onClick={() =>
                         setCurrentPage((p) => Math.min(totalPages, p + 1))
@@ -172,9 +184,6 @@ export function VerUsuarios() {
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
-                  <span className="text-xs font-mono text-muted-foreground min-w-7.5 text-center">
-                    {currentPage}/{totalPages}
-                  </span>
                 </>
               )}
             </div>
@@ -199,9 +208,6 @@ export function VerUsuarios() {
                 </th>
                 <th className="px-6 py-3 border-b border-border text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <span className="font-semibold text-foreground uppercase text-xs whitespace-nowrap">
-                      Rol:
-                    </span>
                     <select
                       value={roleFilter}
                       onChange={(e) => {
@@ -210,10 +216,10 @@ export function VerUsuarios() {
                       }}
                       className="bg-transparent text-foreground focus:outline-none cursor-pointer hover:text-primary transition-colors text-xs font-medium text-right"
                     >
-                      <option value="all">Todos</option>
+                      <option value="all">Rol: Todos</option>
                       {availableRoles.map((role) => (
                         <option key={role} value={role}>
-                          {role}
+                          {roleLabels[role] || role}
                         </option>
                       ))}
                     </select>
@@ -255,9 +261,8 @@ export function VerUsuarios() {
                       </td>
                       <td className="px-6 py-3 border-b border-border/40 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Shield className="h-3.5 w-3.5 text-primary" />
-                          <span className="capitalize text-xs font-medium bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
-                            {userItem.rol || "user"}
+                          <span className="capitalize text-[10px] font-bold bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
+                            {userItem.rol ? roleLabels[userItem.rol] || userItem.rol : "Sin Rol"}
                           </span>
                         </div>
                       </td>
