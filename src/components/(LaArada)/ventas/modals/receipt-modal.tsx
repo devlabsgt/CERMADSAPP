@@ -16,8 +16,10 @@ import {
 import { getVentaById, updateEstadoVenta } from "../lib/actions";
 import { useCertificar, useAnular } from "@/hooks/useInfile";
 import type { INFILEResponse } from "@/types/infile";
-import { getEmisorConfig } from "@/lib/infile";
+import { getEmisorConfig, buildXMLFactura } from "@/lib/infile";
+import { useUser } from "@/components/(base)/providers/UserProvider";
 import Swal from "sweetalert2";
+import { Code } from "lucide-react";
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -46,6 +48,9 @@ export default function ReceiptModal({
   const [facturaCF, setFacturaCF] = useState(true);
   const [waNumber, setWaNumber] = useState("");
   const [infileResult, setInfileResult] = useState<INFILEResponse | null>(null);
+
+  const user = useUser();
+  const isSuper = user?.user_metadata?.rol === "super";
 
   useEffect(() => {
     if (isOpen && ventaId) {
@@ -340,6 +345,84 @@ export default function ReceiptModal({
     }
   };
 
+  const handleDownloadXML = () => {
+    if (!venta) return;
+
+    const nitFinal = facturaCF ? "CF" : (nitReceptor.trim().toUpperCase() || "CF");
+    const nombreFinal = facturaCF ? "CONSUMIDOR FINAL" : (nombreReceptor.trim() || "CONSUMIDOR FINAL");
+
+    const granTotal = venta.total ?? 0;
+    const montoGravable = parseFloat((granTotal / 1.12).toFixed(2));
+    const montoIVA = parseFloat((granTotal - montoGravable).toFixed(2));
+
+    const items = venta.ven_detalle?.map((item: any, idx: number) => {
+      const itemTotal = item.subtotal ?? 0;
+      const ig = parseFloat((itemTotal / 1.12).toFixed(2));
+      const iva = parseFloat((itemTotal - ig).toFixed(2));
+      return {
+        numeroLinea: idx + 1,
+        bienOServicio: "B" as const,
+        cantidad: item.cantidad,
+        unidadMedida: item.inv_productos?.medida || "UNI",
+        descripcion: item.inv_productos?.nombre || "Producto",
+        precioUnitario: item.precio_aplicado ?? 0,
+        precio: itemTotal,
+        descuento: 0,
+        impuestos: [
+          {
+            nombreCorto: "IVA" as const,
+            codigoUnidadGravable: 1,
+            montoGravable: ig,
+            montoImpuesto: iva,
+          },
+        ],
+        total: itemTotal,
+      };
+    }) ?? [];
+
+    const now = new Date();
+    const offset = "-06:00";
+    const fechaISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}${offset}`;
+
+    const input = {
+      tipo: "FACT" as const,
+      codigoMoneda: "GTQ" as const,
+      fechaHoraEmision: fechaISO,
+      emisor: getEmisorConfig(),
+      receptor: {
+        idReceptor: nitFinal,
+        nombreReceptor: nombreFinal,
+        ...(correoReceptor.trim() ? { correoReceptor: correoReceptor.trim() } : {}),
+        direccion: {
+          direccion: "CIUDAD",
+          codigoPostal: "01010",
+          municipio: "GUATEMALA",
+          departamento: "GUATEMALA",
+          pais: "GT",
+        },
+      },
+      fraseTipo: 1,
+      fraseEscenario: 1,
+      items,
+      totales: {
+        totalIVA: montoIVA,
+        granTotal,
+      },
+      ventaId: venta.id,
+    };
+
+    const xml = buildXMLFactura(input);
+    const blob = new Blob([xml], { type: "text/xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `DTE-DEBUG-VENTA-${venta.id.substring(0,6).toUpperCase()}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (!isOpen) return null;
 
   const dteActivo = venta?.dte_documentos?.find((d: any) => d.estado === "certificado");
@@ -486,8 +569,8 @@ export default function ReceiptModal({
                       <div className="flex flex-col gap-2">
                         <div className="text-center mb-2">
                           <h1 className="text-2xl font-black uppercase">{getEmisorConfig().nombreComercial}</h1>
-                          <p>{getEmisorConfig().direccion.direccion}</p>
-                          <p>Tel: {getEmisorConfig().telefono}</p>
+                          <p>{getEmisorConfig().direccion.direccion}, {getEmisorConfig().direccion.municipio}, {getEmisorConfig().direccion.departamento}</p>
+                          <p>TEL: {getEmisorConfig().telefono}</p>
                           <p>NIT: {getEmisorConfig().nitEmisor}</p>
                         </div>
                         <div className="border-t-2 border-dashed border-black"></div>
@@ -650,6 +733,15 @@ export default function ReceiptModal({
                         >
                           <Printer className="size-4" /> Imprimir
                         </button>
+                        {isSuper && (
+                          <button
+                            onClick={handleDownloadXML}
+                            className="flex items-center justify-center gap-2 px-3 py-2 bg-zinc-800 text-zinc-100 rounded-lg font-bold text-[10px] uppercase hover:bg-zinc-700 transition cursor-pointer"
+                            title="Debug: Descargar XML"
+                          >
+                            <Code className="size-3" /> XML Debug
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -660,7 +752,7 @@ export default function ReceiptModal({
                       >
                         <div className="text-center mb-2">
                           <h1 className="text-2xl font-black uppercase">{getEmisorConfig().nombreComercial}</h1>
-                          <p>{getEmisorConfig().direccion.direccion}</p>
+                          <p>{getEmisorConfig().direccion.direccion}, {getEmisorConfig().direccion.municipio}, {getEmisorConfig().direccion.departamento}</p>
                           <p>Tel: {getEmisorConfig().telefono}</p>
                           <p className="mt-1 font-bold text-[10px]">{getEmisorConfig().nombreEmisor}</p>
                           <p className="text-[10px]">NIT: {getEmisorConfig().nitEmisor}</p>

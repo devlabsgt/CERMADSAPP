@@ -285,15 +285,15 @@ urrhh
 0X4#8R&Q
 
 uadmin
-9OL4$v7Y
+Admin/123
 
 uventas
 H9*eaJw#
 
 ucontador
-dp&K#0Ff
+Conta/123
 
 prueba
-y#NKD5@9
+Prueba/123
 
 

@@ -168,10 +168,10 @@ export default function DashboardLaArada() {
       iconKey: "gbzbfgyf",
       desc: "Inventario.",
       color: "border-amber-500/20 bg-amber-500/5 dark:border-amber-500/40",
-      className: "md:col-span-1 md:row-span-1",
+      className: "md:col-span-2 md:row-span-1",
       allowedRoles: ["super", "admin", "contabilidad", "ventas"],
     },
-    {
+    /* {
       id: "proveedores",
       href: "/cermadsa/laarada/proveedores",
       label: "Proveedores",
@@ -181,7 +181,7 @@ export default function DashboardLaArada() {
         "border-emerald-500/20 bg-emerald-500/5 dark:border-emerald-500/40",
       className: "md:col-span-1 md:row-span-1",
       allowedRoles: ["super", "admin", "contabilidad"],
-    },
+    }, */
   ];
 
   const visibleMenuItems = menuItems.filter((item) =>
