@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Download,
   Search,
@@ -91,7 +91,7 @@ export default function ContabilidadView() {
   }, [orders, startDate, endDate, monthYear, searchTerm]);
 
   // Reset pagination on filter change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [filteredOrders, pageSize]);
 
