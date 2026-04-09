@@ -143,7 +143,7 @@ export default function ListadoVentas() {
             </div>
           )}
 
-          {!isPrivileged && (
+          {!isPrivileged && effectiveRole !== "user" && (
             <div className="flex items-center gap-2 bg-muted/50 border px-3 py-1.5 rounded-lg shadow-sm h-10 w-full sm:w-auto justify-center min-w-[150px]">
               <span className="text-[10px] font-bold text-muted-foreground uppercase hidden sm:inline whitespace-nowrap">
                 Vendedor:

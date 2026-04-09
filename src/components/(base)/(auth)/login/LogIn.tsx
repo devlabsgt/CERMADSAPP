@@ -16,6 +16,7 @@ export default function LogIn() {
   const [mounted, setMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isPasskeyPending, setIsPasskeyPending] = useState<boolean>(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [isPasskeysEnabled, setIsPasskeysEnabled] = useState<boolean>(false);
@@ -203,6 +204,8 @@ useEffect(() => {
                       name="password"
                       type={showPassword ? "text" : "password"}
                       required={showCredentials}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={handleKeyUpDown}
                       onKeyUp={handleKeyUpDown}
                       className={cn(

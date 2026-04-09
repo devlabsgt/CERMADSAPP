@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { VentaSchema, VentaFormValues, ClienteCatalogo } from "../lib/zod";
 import { useCreateVenta, useUpdateVenta, useCatalogos } from "../lib/hooks";
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   X,
   Save,
@@ -36,6 +37,7 @@ export default function SaleModal({
   ventaToEdit,
   effectiveRole,
 }: SaleModalProps) {
+  const queryClient = useQueryClient();
   const { data: catalogos, refetch } = useCatalogos();
   const createMutation = useCreateVenta();
   const updateMutation = useUpdateVenta();
@@ -75,13 +77,19 @@ export default function SaleModal({
   const detalles = watch("detalles");
   const selectedClientId = watch("cliente_id");
 
+  const isAnulado = String(ventaToEdit?.estado || "")
+    .trim()
+    .toLowerCase() === "anulado";
+
   const isReadOnly = useMemo(() => {
     if (!ventaToEdit) return false;
-    if (effectiveRole === "super") return false;
     const estado = String(ventaToEdit.estado || "Pendiente")
       .trim()
       .toLowerCase();
-    return estado === "entregado" || estado === "anulado";
+    // Always read-only if anulado, regardless of role
+    if (estado === "anulado") return true;
+    if (effectiveRole === "super") return false;
+    return estado === "entregado";
   }, [ventaToEdit, effectiveRole]);
 
   useEffect(() => {
@@ -162,6 +170,8 @@ export default function SaleModal({
   const handleCancelOrder = async () => {
     if (!ventaToEdit?.id || isReadOnly) return;
 
+    const isDark = document.documentElement.classList.contains("dark");
+
     const result = await Swal.fire({
       title: "¿Estás seguro?",
       text: "Se anulará la venta y se devolverá el stock.",
@@ -171,6 +181,8 @@ export default function SaleModal({
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Sí, anular venta",
       cancelButtonText: "No, volver",
+      background: isDark ? "#1c1c1e" : undefined,
+      color: isDark ? "#f5f5f5" : undefined,
     });
 
     if (result.isConfirmed) {
@@ -183,9 +195,11 @@ export default function SaleModal({
           title: "Venta anulada correctamente",
           showConfirmButton: false,
           timer: 1500,
+          background: isDark ? "#1c1c1e" : undefined,
+          color: isDark ? "#f5f5f5" : undefined,
         });
         onClose();
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ["ventas"] });
       }
     }
   };
@@ -431,7 +445,7 @@ export default function SaleModal({
 
           <div className="p-4 border-t bg-muted/30 flex justify-between items-center gap-3">
             <div>
-              {ventaToEdit && !isReadOnly && (
+              {ventaToEdit && !isReadOnly && !isAnulado && (
                 <button
                   type="button"
                   onClick={handleCancelOrder}

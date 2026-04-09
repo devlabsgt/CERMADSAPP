@@ -4,13 +4,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  BarChart2,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import Swal from "sweetalert2";
 import StatsModal from "../modals/stats-modal";
-import { TrendingUp, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 const getGuatemalaDateParts = (dateInput?: string | Date) => {
   if (!dateInput || dateInput === "Sin Fecha")
@@ -85,28 +84,7 @@ export default function ListView({
   const [filtroMes, setFiltroMes] = useState<number>(current.month);
   const [filtroSemana, setFiltroSemana] = useState<number | "Todas">("Todas");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [isStatsAccordionOpen, setIsStatsAccordionOpen] = useState(false);
-  const [selectedStatsSeller, setSelectedStatsSeller] = useState<{id: string, name: string} | null>(null);
-
-  const sellerStats = useMemo(() => {
-    const stats: Record<string, { total: number; count: number; id: string }> = {};
-    
-    data.filter((v: any) => {
-        const orderDate = getGuatemalaDateParts(getOrderDateString(v));
-        return orderDate.year === filtroAnio && 
-               orderDate.month === filtroMes && 
-               v.estado?.toLowerCase() !== "anulado";
-    }).forEach((order: any) => {
-      const name = order.vendedor?.nombre || "Vendedor Gral";
-      const sellerId = order.usuario_id || "unknown";
-      if (!stats[name]) stats[name] = { total: 0, count: 0, id: sellerId };
-      stats[name].total += order.total || 0;
-      stats[name].count += 1;
-    });
-
-    return Object.entries(stats).sort((a, b) => b[1].total - a[1].total);
-  }, [data, filtroAnio, filtroMes]);
+  const [showStats, setShowStats] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -222,7 +200,7 @@ export default function ListView({
       }));
   }, [paginatedItems]);
 
-  if (isLoading)
+  if (isLoading && data.length === 0)
     return (
       <div className="p-8 text-center border rounded-xl bg-card italic">
         Cargando...
@@ -230,159 +208,107 @@ export default function ListView({
     );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 items-start animate-in fade-in duration-300">
-      <aside className="w-full lg:w-[20%] shrink-0 flex flex-col gap-8 sticky lg:top-6 text-xs">
-        <div className="flex flex-col gap-2">
-          <h3 className="font-bold text-muted-foreground uppercase text-xs">
-            Buscar
-          </h3>
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      {/* Top filter bar - row 1 */}
+      <div className="flex flex-col gap-3 p-4 bg-card border rounded-xl shadow-sm">
+        <div className="flex flex-col xl:flex-row gap-3 items-start xl:items-center w-full">
+          {/* Search */}
+          <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full xl:w-72 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-10 shrink-0">
+            <Search className="size-4 text-muted-foreground shrink-0" />
+            <input
+              type="text"
+              placeholder="Cliente, recibo o NIT"
+              className="bg-transparent outline-none text-xs w-full font-medium"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-          {data.length > 0 && (
-            <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-10">
-              <Search className="size-4 text-muted-foreground shrink-0" />
-              <input
-                type="text"
-                placeholder="Cliente, recibo o NIT"
-                className="bg-transparent outline-none text-xs w-full font-medium"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:flex-1">
+            {/* Fechas en 1 linea para telefono */}
+            <div className="flex flex-row gap-2 w-full sm:w-auto">
+              {/* Año */}
+              <select
+                value={filtroAnio}
+                onChange={(e) => setFiltroAnio(Number(e.target.value))}
+                className="flex-1 sm:flex-none sm:w-auto h-10 px-2 sm:px-3 border rounded-lg bg-background font-bold text-xs outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+              >
+                {[2025, 2026, 2027].map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+
+              {/* Mes */}
+              <select
+                value={filtroMes}
+                onChange={(e) => {
+                  setFiltroMes(Number(e.target.value));
+                  setFiltroSemana("Todas");
+                }}
+                className="flex-1 sm:flex-none sm:w-auto h-10 px-2 sm:px-3 border rounded-lg bg-background font-bold text-[10px] sm:text-xs capitalize outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+              >
+                {[...Array(12)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {new Date(2000, i, 1).toLocaleString("es-GT", { month: "short" })}
+                  </option>
+                ))}
+              </select>
+
+              {/* Semana */}
+              <select
+                value={filtroSemana}
+                onChange={(e) =>
+                  setFiltroSemana(
+                    e.target.value === "Todas" ? "Todas" : Number(e.target.value),
+                  )
+                }
+                className="flex-1 sm:flex-none sm:w-auto h-10 px-2 sm:px-3 border rounded-lg bg-background font-bold text-[10px] sm:text-xs outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer truncate"
+              >
+                <option value="Todas">Semana</option>
+                {semanasDelMes.map((s) => (
+                  <option key={s.week} value={s.week}>{s.label}</option>
+                ))}
+              </select>
             </div>
-          )}
+
+            {/* Stats Button */}
+            <button
+              onClick={() => setShowStats(true)}
+              className="w-full sm:w-auto sm:ml-auto h-10 flex items-center justify-center gap-2 px-4 border rounded-lg bg-orange-500/10 text-orange-600 font-bold text-xs hover:bg-orange-500/20 transition-all cursor-pointer whitespace-nowrap border-orange-500/30 shrink-0"
+            >
+              <BarChart2 className="size-4" />
+              Ventas por Vendedor
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-muted-foreground uppercase text-xs">
-            Fecha de entrega
-          </h3>
-          <div className="flex gap-2">
-            <select
-              value={filtroAnio}
-              onChange={(e) => setFiltroAnio(Number(e.target.value))}
-              className="w-1/2 p-3 border rounded-xl bg-background font-bold outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              {[2025, 2026, 2027].map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filtroMes}
-              onChange={(e) => {
-                setFiltroMes(Number(e.target.value));
-                setFiltroSemana("Todas");
-              }}
-              className="w-1/2 p-3 border rounded-xl bg-background font-bold capitalize outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {new Date(2000, i, 1).toLocaleString("es-GT", {
-                    month: "long",
-                  })}
-                </option>
-              ))}
-            </select>
-          </div>
-          <select
-            value={filtroSemana}
-            onChange={(e) =>
-              setFiltroSemana(
-                e.target.value === "Todas" ? "Todas" : Number(e.target.value),
-              )
-            }
-            className="w-full p-3 border rounded-xl bg-background font-bold outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="Todas">Todas las semanas</option>
-            {semanasDelMes.map((s) => (
-              <option key={s.week} value={s.week}>
-                {s.label}
-              </option>
+        {/* Filter by status - row 2 */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Estado:</span>
+          {[
+            { v: "Pendiente", c: "amber" },
+            { v: "Entregado", c: "green" },
+            { v: "Anulado", c: "red" },
+          ]
+            .filter((item) => counts[item.v as keyof typeof counts] > 0)
+            .map((item) => (
+              <button
+                key={item.v}
+                onClick={() => setFiltroEstado(filtroEstado === item.v ? "" : item.v)}
+                className={`flex items-center justify-center px-3 py-1 border-2 rounded-lg cursor-pointer transition-all text-xs font-bold bg-${item.c}-500/10 text-${item.c}-600 ${
+                  filtroEstado === item.v
+                    ? `border-${item.c}-500`
+                    : "border-transparent hover:opacity-70"
+                }`}
+              >
+                {item.v} ({counts[item.v as keyof typeof counts]})
+              </button>
             ))}
-          </select>
         </div>
+      </div>
 
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-muted-foreground uppercase text-xs">
-            Filtrar por estado
-          </h3>
-          <div className="grid grid-cols-2 md:flex md:flex-col gap-3">
-            {[
-              { v: "Pendiente", c: "amber" },
-              { v: "Entregado", c: "green" },
-              { v: "Anulado", c: "red" },
-            ]
-              .filter((item) => counts[item.v as keyof typeof counts] > 0)
-              .map((item) => (
-                <button
-                  key={item.v}
-                  onClick={() =>
-                    setFiltroEstado(filtroEstado === item.v ? "" : item.v)
-                  }
-                  className={`flex items-center justify-center p-3 border-[3px] rounded-xl cursor-pointer transition-all bg-${item.c}-500/10 text-${item.c}-600 ${
-                    filtroEstado === item.v
-                      ? `border-${item.c}-500`
-                      : "border-transparent hover:opacity-70"
-                  }`}
-                >
-                  <span className="font-bold text-xs truncate">
-                    {item.v} ({counts[item.v as keyof typeof counts]})
-                  </span>
-                </button>
-              ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <button 
-            onClick={() => setIsStatsAccordionOpen(!isStatsAccordionOpen)}
-            className="flex items-center justify-between w-full group cursor-pointer mb-1 transition-all"
-          >
-            <h3 className="font-bold text-orange-600 uppercase text-[10px] tracking-tight group-hover:text-orange-700 transition-colors">
-                Ventas del Mes por Vendedor
-            </h3>
-            <ChevronDown className={`size-3 text-orange-500 transition-transform duration-300 ${isStatsAccordionOpen ? 'rotate-180' : ''}`} />
-          </button>
-          
-          <AnimatePresence>
-            {isStatsAccordionOpen && (
-                <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                >
-                    <div className="flex flex-col gap-2 pt-1">
-                        {sellerStats.length === 0 ? (
-                        <p className="text-[10px] italic text-muted-foreground">Sin ventas este mes</p>
-                        ) : (
-                            sellerStats.map(([name, stat]) => (
-                            <button 
-                                key={stat.id}
-                                onClick={() => setSelectedStatsSeller({ id: stat.id, name })}
-                                className="p-3 bg-card border rounded-xl flex flex-col gap-1 group relative overflow-hidden cursor-pointer hover:bg-orange-500/5 hover:border-orange-500/30 transition-all active:scale-95 text-left w-full"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <span className="font-bold text-[10px] line-clamp-1 grow pr-2">{name}</span>
-                                    <TrendingUp className="size-3 text-orange-500 opacity-0 group-hover:opacity-100 transition-all" />
-                                </div>
-                                <div className="flex justify-between items-baseline mt-1">
-                                    <span className="font-black text-xs text-orange-600">Q{stat.total.toLocaleString()}</span>
-                                    <span className="text-[9px] font-bold text-muted-foreground">({stat.count})</span>
-                                </div>
-                                <div className="absolute left-0 bottom-0 h-0.5 bg-orange-500/20 group-hover:bg-orange-500 transition-all w-full" />
-                            </button>
-                        ))
-                        )}
-                    </div>
-                </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </aside>
-
-      <div className="flex-1 w-full flex flex-col gap-3">
+      {/* Results */}
+      <div className="w-full flex flex-col gap-3">
         {groupedOrders.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl bg-card font-bold uppercase">
             Sin pedidos registrados
@@ -426,13 +352,17 @@ export default function ListView({
                     const isAnulada = estadoNormal === "anulado";
 
                     let borderColor = "border-border";
+                    let textColor = "text-amber-500";
                     if (isAnulada) {
                       borderColor = "border-red-400/50 ring-1 ring-red-400/5";
+                      textColor = "text-red-600 dark:text-red-500";
                     } else if (isEntregada) {
                       if (tieneFacturaCertificada) {
                         borderColor = "border-sky-400/50 ring-1 ring-sky-400/10";
+                        textColor = "text-sky-600 dark:text-sky-500";
                       } else {
                         borderColor = "border-emerald-400/50 ring-1 ring-emerald-400/10";
+                        textColor = "text-emerald-600 dark:text-emerald-500";
                       }
                     }
 
@@ -461,7 +391,7 @@ export default function ListView({
                           }`}
                         >
                           <div className="flex pr-5 flex-col gap-1 w-full md:w-112.5 shrink-0">
-                            <span className="font-mono font-bold text-blue-500 text-sm">
+                            <span className={`font-mono font-bold ${textColor} text-sm`}>
                               Venta #{venta.id ? `${venta.id.substring(0, 3).toUpperCase()}-${venta.id.substring(3, 6).toUpperCase()}` : '---'}
                               <span className="px-2 ml-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-muted text-muted-foreground">
                                 {venta.tipo_venta}
@@ -516,21 +446,24 @@ export default function ListView({
                             <div className="flex flex-col gap-1">
                               {venta.observaciones && (
                                 <div className="flex flex-col">
-                                  <span className="text-sm uppercase font-bold text-blue-600">
+                                  <span className="text-[10px] uppercase font-bold text-blue-600">
                                     Observaciones:
                                   </span>
-                                  <span className="text-sm italic text-foreground/90">
+                                  <span className="text-xs italic text-foreground/90 leading-tight mt-0.5">
                                     {venta.observaciones}
                                   </span>
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-baseline gap-1.5 border-t border-border/30 pt-2">
-                              <span className="text-[10px] uppercase font-bold text-blue-600 shrink-0">
+                            <div className="flex flex-col gap-0.5 border-t border-border/30 pt-2">
+                              <span className="text-[10px] uppercase font-bold text-blue-600">
                                 Vendedor:
                               </span>
-                              <span className="text-xs italic text-muted-foreground">
-                                {venta.vendedor?.nombre || "-"}, a las {venta.created_at ? new Date(venta.created_at).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--"} hrs
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                {venta.vendedor?.nombre || "-"}
+                              </span>
+                              <span className="text-[10px] italic text-muted-foreground mt-0.5">
+                                {venta.created_at ? new Date(venta.created_at).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--"} hrs
                               </span>
                             </div>
                           </div>
@@ -567,7 +500,9 @@ export default function ListView({
                               estadoNormal === "pendiente"
                                 ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer"
                                 : estadoNormal === "entregado"
-                                  ? "bg-green-500/10 text-green-600 opacity-90 cursor-default"
+                                  ? (tieneFacturaCertificada 
+                                      ? "bg-sky-500/10 text-sky-600 opacity-90 cursor-default"
+                                      : "bg-green-500/10 text-green-600 opacity-90 cursor-default")
                                   : "bg-red-500/10 text-red-600 opacity-80 cursor-default"
                             }`}
                           >
@@ -625,11 +560,9 @@ export default function ListView({
         )}
       </div>
 
-      <StatsModal 
-        isOpen={!!selectedStatsSeller}
-        onClose={() => setSelectedStatsSeller(null)}
-        sellerId={selectedStatsSeller?.id || null}
-        sellerName={selectedStatsSeller?.name || null}
+      <StatsModal
+        isOpen={showStats}
+        onClose={() => setShowStats(false)}
         allVentas={data}
       />
     </div>

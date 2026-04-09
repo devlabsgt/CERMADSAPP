@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import * as React from "react";
 import {
   X,
   Printer,
@@ -18,8 +19,8 @@ import { useCertificar, useAnular } from "@/hooks/useInfile";
 import type { INFILEResponse } from "@/types/infile";
 import { getEmisorConfig, buildXMLFactura } from "@/lib/infile";
 import { useUser } from "@/components/(base)/providers/UserProvider";
+import { MagicCard } from "@/components/ui/magic-card";
 import Swal from "sweetalert2";
-import { Code } from "lucide-react";
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -29,6 +30,44 @@ interface ReceiptModalProps {
 }
 
 type Tab = "recibo" | "factura";
+
+/** Renders children at a fixed half-letter size (816×528 at 96dpi) scaled 
+ *  to always fit inside the available container width. */
+function ScaledDocument({ children }: { children: React.ReactNode }) {
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const innerRef = React.useRef<HTMLDivElement>(null);
+  const [scale, setScale] = React.useState(1);
+  const [scaledHeight, setScaledHeight] = React.useState<number | undefined>(undefined);
+
+  const DOC_W = 816;
+
+  React.useEffect(() => {
+    const outer = wrapRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    const update = () => {
+      const available = outer.clientWidth;
+      const s = available > 0 ? Math.min(1, available / DOC_W) : 1;
+      setScale(s);
+      setScaledHeight(inner.scrollHeight * s);
+    };
+
+    const ro = new ResizeObserver(update);
+    ro.observe(outer);
+    ro.observe(inner);
+    update();
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ width: "100%", height: scaledHeight ?? "auto", overflow: "hidden" }}>
+      <div ref={innerRef} style={{ transformOrigin: "top left", transform: `scale(${scale})`, width: DOC_W }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function ReceiptModal({
   isOpen,
@@ -50,7 +89,6 @@ export default function ReceiptModal({
   const [infileResult, setInfileResult] = useState<INFILEResponse | null>(null);
 
   const user = useUser();
-  const isSuper = user?.user_metadata?.rol === "super";
 
   useEffect(() => {
     if (isOpen && ventaId) {
@@ -91,44 +129,35 @@ export default function ReceiptModal({
   }, [isOpen, ventaId, reset]);
 
   const handlePrint = () => {
-    const printContent = document.getElementById("print-container")?.innerHTML;
-    if (!printContent) return;
-
+    const content = document.getElementById("print-container")?.innerHTML;
+    if (!content) return;
     const iframe = document.createElement("iframe");
     iframe.style.display = "none";
     document.body.appendChild(iframe);
-
     const doc = iframe.contentWindow?.document;
     if (doc) {
       doc.open();
-      doc.write(`
-        <html>
-          <head>
-            <title>Despacho_La_Arada</title>
-            <style>
-              @page { margin: 0; size: 80mm 297mm; }
-              body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 4mm; color: black; line-height: 1.2; background: white; }
-              .flex { display: flex; } .flex-col { flex-direction: column; } .justify-between { justify-content: space-between; } .items-center { align-items: center; }
-              .text-center { text-align: center; } .text-right { text-align: right; } .text-left { text-align: left; }
-              .font-black { font-weight: 900; } .font-bold { font-weight: 700; } .uppercase { text-transform: uppercase; } .w-full { width: 100%; }
-              .border-t-2 { border-top-width: 2px; } .border-dashed { border-top-style: dashed; } .border-black { border-color: black; }
-              .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; } .mb-2 { margin-bottom: 0.5rem; } .mt-1 { margin-top: 0.25rem; } .mt-2 { margin-top: 0.5rem; }
-              table { border-collapse: collapse; width: 100%; } th, td { vertical-align: top; padding: 2px 0; }
-              .text-2xl { font-size: 1.5rem; line-height: 2rem; } .text-sm { font-size: 0.875rem; } .text-xs { font-size: 0.75rem; } .text-gray-600 { color: #4b5563; }
-              .space-y-1 > * + * { margin-top: 0.25rem; }
-            </style>
-          </head>
-          <body>${printContent}</body>
-        </html>
-      `);
+      doc.write(`<html><head><title>Recibo_Venta</title><style>
+        @page { margin: 0; size: 8.5in 5.5in; }
+        @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; width: 100%; margin: 0; padding: 20px 20px 0 20px; color: black; line-height: 1.3; background: white; }
+        table { border-collapse: collapse; width: 100%; } th, td { vertical-align: top; }
+        p, h1, h2, h3, div { margin: 0; }
+      </style></head><body>${content}</body></html>`);
       doc.close();
-      setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      }, 250);
+
+      const images = Array.from(iframe.contentDocument?.images ?? []) as HTMLImageElement[];
+      if (images.length > 0) {
+        let loaded = 0;
+        const tryPrint = () => { loaded++; if (loaded >= images.length) { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1500); } };
+        images.forEach(img => { if (img.complete) { tryPrint(); } else { img.onload = tryPrint; img.onerror = tryPrint; } });
+      } else {
+        setTimeout(() => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 250);
+      }
     }
   };
+
 
   const handleCertificar = async () => {
     if (!venta) return;
@@ -345,84 +374,6 @@ export default function ReceiptModal({
     }
   };
 
-  const handleDownloadXML = () => {
-    if (!venta) return;
-
-    const nitFinal = facturaCF ? "CF" : (nitReceptor.trim().toUpperCase() || "CF");
-    const nombreFinal = facturaCF ? "CONSUMIDOR FINAL" : (nombreReceptor.trim() || "CONSUMIDOR FINAL");
-
-    const granTotal = venta.total ?? 0;
-    const montoGravable = parseFloat((granTotal / 1.12).toFixed(2));
-    const montoIVA = parseFloat((granTotal - montoGravable).toFixed(2));
-
-    const items = venta.ven_detalle?.map((item: any, idx: number) => {
-      const itemTotal = item.subtotal ?? 0;
-      const ig = parseFloat((itemTotal / 1.12).toFixed(2));
-      const iva = parseFloat((itemTotal - ig).toFixed(2));
-      return {
-        numeroLinea: idx + 1,
-        bienOServicio: "B" as const,
-        cantidad: item.cantidad,
-        unidadMedida: item.inv_productos?.medida || "UNI",
-        descripcion: item.inv_productos?.nombre || "Producto",
-        precioUnitario: item.precio_aplicado ?? 0,
-        precio: itemTotal,
-        descuento: 0,
-        impuestos: [
-          {
-            nombreCorto: "IVA" as const,
-            codigoUnidadGravable: 1,
-            montoGravable: ig,
-            montoImpuesto: iva,
-          },
-        ],
-        total: itemTotal,
-      };
-    }) ?? [];
-
-    const now = new Date();
-    const offset = "-06:00";
-    const fechaISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}${offset}`;
-
-    const input = {
-      tipo: "FACT" as const,
-      codigoMoneda: "GTQ" as const,
-      fechaHoraEmision: fechaISO,
-      emisor: getEmisorConfig(),
-      receptor: {
-        idReceptor: nitFinal,
-        nombreReceptor: nombreFinal,
-        ...(correoReceptor.trim() ? { correoReceptor: correoReceptor.trim() } : {}),
-        direccion: {
-          direccion: "CIUDAD",
-          codigoPostal: "01010",
-          municipio: "GUATEMALA",
-          departamento: "GUATEMALA",
-          pais: "GT",
-        },
-      },
-      fraseTipo: 1,
-      fraseEscenario: 1,
-      items,
-      totales: {
-        totalIVA: montoIVA,
-        granTotal,
-      },
-      ventaId: venta.id,
-    };
-
-    const xml = buildXMLFactura(input);
-    const blob = new Blob([xml], { type: "text/xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `DTE-DEBUG-VENTA-${venta.id.substring(0,6).toUpperCase()}.xml`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   if (!isOpen) return null;
 
   const dteActivo = venta?.dte_documentos?.find((d: any) => d.estado === "certificado");
@@ -433,21 +384,22 @@ export default function ReceiptModal({
   const nitToPrint = dteActivo ? dteActivo.id_receptor : (isFacturaComprobante && venta?.ven_clientes?.nit ? venta.ven_clientes.nit : "C/F");
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm px-0 sm:p-4">
-      <div className="w-full max-w-3xl bg-white text-black rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[98vh] sm:max-h-[95vh]">
+    <>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-0 sm:p-4 text-foreground">
+        <MagicCard className="w-full max-w-3xl p-0 shadow-2xl rounded-xl max-h-[98vh] sm:max-h-[95vh] flex flex-col overflow-hidden bg-background">
 
-        <div className="flex flex-col gap-3 p-4 border-b bg-gray-50 shrink-0">
-          <div className="flex justify-between items-center">
-            <h2 className="text-base font-bold flex items-center gap-2 text-gray-800">
-              <FileText className="size-5" /> Vista Previa de Venta
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-gray-200 rounded-full text-gray-600 transition-colors cursor-pointer"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
+          <div className="flex flex-col gap-3 p-4 border-b bg-muted/50 shrink-0">
+            <div className="flex justify-between items-center">
+              <h2 className="text-base font-bold flex items-center gap-2">
+                <FileText className="size-5" /> Vista Previa de Venta
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-1 hover:bg-muted rounded-full text-muted-foreground transition-colors cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
 
           <div className="flex gap-2">
             {loading ? (
@@ -463,7 +415,7 @@ export default function ReceiptModal({
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                       tab === "recibo"
                         ? "bg-blue-600 text-white shadow"
-                        : "bg-white border text-gray-600 hover:bg-gray-100"
+                        : "bg-background border border-border text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     <Receipt className="size-4" /> Recibo
@@ -473,8 +425,8 @@ export default function ReceiptModal({
                   onClick={() => setTab("factura")}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                     tab === "factura"
-                      ? "bg-emerald-600 text-white shadow"
-                      : "bg-white border text-gray-600 hover:bg-gray-100"
+                      ? "bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/40 shadow"
+                      : "bg-background border border-border text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   <FileCheck2 className="size-4" /> Factura Electrónica (INFILE)
@@ -482,10 +434,10 @@ export default function ReceiptModal({
               </>
             )}
           </div>
-        </div>
+          </div>
 
-        {loading ? (
-          <div className="flex-1 overflow-y-auto p-8 bg-white space-y-6 animate-pulse">
+          {loading ? (
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 animate-pulse">
             <div className="h-16 w-48 bg-gray-200 rounded-lg mx-auto mb-6" />
             <div className="space-y-3">
               <div className="h-4 w-full bg-gray-100 rounded" />
@@ -499,11 +451,11 @@ export default function ReceiptModal({
             </div>
             <div className="h-12 w-full bg-gray-200 rounded-xl mt-8" />
           </div>
-        ) : (
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-            {tab === "recibo" && !dteActivo && (
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <div className="bg-white border-b px-4 py-4 shrink-0 space-y-3">
+          ) : (
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              {tab === "recibo" && !dteActivo && (
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                  <div className="bg-muted/30 border-b px-4 py-4 shrink-0 space-y-3">
                   {!isReadonly && (
                     <div className="px-1">
                       <input
@@ -560,96 +512,135 @@ export default function ReceiptModal({
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-100">
+                <div className="flex-1 overflow-y-auto p-2 sm:p-4">
+                  <ScaledDocument>
                   <div
                     id="print-container"
-                    className="bg-white p-4 w-full max-w-[320px] font-mono text-black text-xs shadow-md mx-auto leading-tight"
+                    style={{ width: 816, minWidth: 816, backgroundColor: "white", color: "black", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11px", boxSizing: "border-box" as const, border: "1px solid #000", paddingTop: "20px" }}
                   >
                     {venta ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="text-center mb-2">
-                          <h1 className="text-2xl font-black uppercase">{getEmisorConfig().nombreComercial}</h1>
-                          <p>{getEmisorConfig().direccion.direccion}, {getEmisorConfig().direccion.municipio}, {getEmisorConfig().direccion.departamento}</p>
-                          <p>TEL: {getEmisorConfig().telefono}</p>
-                          <p>NIT: {getEmisorConfig().nitEmisor}</p>
-                        </div>
-                        <div className="border-t-2 border-dashed border-black"></div>
-                        <div>
-                          <p><span className="font-bold uppercase">Cod. Venta:</span> {venta?.id?.substring(0, 3).toUpperCase()}-${venta?.id?.substring(3, 6).toUpperCase()}</p>
-                          <p><span className="font-bold uppercase">Cliente:</span> {venta.ven_clientes?.nombre}</p>
-                        </div>
-                        <div className="border-t-2 border-dashed border-black"></div>
-                        <table className="w-full text-left">
-                          <thead>
+                      <>
+                        {/* ── HEADER: logo left, Label info right ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, borderBottom: "2px solid #000" }}>
+                          <tbody>
                             <tr>
-                              <th className="py-1">CANT</th>
-                              <th className="py-1">DESCRIPCIÓN</th>
-                              <th className="py-1 text-right">TOTAL</th>
+                              <td style={{ padding: "10px 16px", verticalAlign: "middle", width: "55%" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                                  <img src="/logos/LaArada.png" alt="Logo" style={{ width: "36px", height: "36px", objectFit: "contain" as const, filter: "brightness(0)", flexShrink: 0 }} />
+                                  <div>
+                                    <div style={{ fontWeight: 900, fontSize: "18px", letterSpacing: "0.04em", textTransform: "uppercase" as const, lineHeight: 1, color: "#000" }}>{getEmisorConfig().nombreComercial}</div>
+                                    <div style={{ fontSize: "8px", fontStyle: "italic" as const, marginTop: "2px", color: "#444" }}>Construyendo Junto a ti el Futuro</div>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: "8px", color: "#333" }}>{getEmisorConfig().direccion.direccion}, {getEmisorConfig().direccion.municipio}, {getEmisorConfig().direccion.departamento} | TEL: {getEmisorConfig().telefono}</div>
+                                <div style={{ fontSize: "10px", color: "#333" }}>{getEmisorConfig().nombreEmisor} | NIT: {getEmisorConfig().nitEmisor}</div>
+                              </td>
+                              <td style={{ padding: "10px 16px", verticalAlign: "middle", textAlign: "right" as const, width: "45%" }}>
+                                <div style={{ fontWeight: 900, fontSize: "18px", textTransform: "uppercase" as const, letterSpacing: "0.05em", color: "#000" }}>RECIBO DE VENTA</div>
+                                <div style={{ fontSize: "11px", marginTop: "8px" }}><strong>Cod. Venta:</strong> {venta?.id?.substring(0, 3).toUpperCase()}-{venta?.id?.substring(3, 6).toUpperCase()}</div>
+                                <div style={{ fontSize: "10px", marginTop: "3px" }}><strong>Fecha:</strong> {new Date(venta.created_at).toLocaleDateString("es-GT")}, {new Date(venta.created_at).toLocaleTimeString("es-GT")}</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* ── CUSTOMER ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, borderBottom: "1px solid #000" }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ padding: "9px 20px", width: "55%", verticalAlign: "top" }}>
+                                <div style={{ display: "flex", gap: "6px", marginBottom: "3px" }}>
+                                  <span style={{ fontWeight: 700, fontSize: "10px", minWidth: "55px", color: "#444" }}>Cliente:</span>
+                                  <span>{venta.ven_clientes?.nombre.trim() || "CONSUMIDOR FINAL"}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: "9px 20px", width: "45%", verticalAlign: "top" }}>
+                                <div style={{ display: "flex", gap: "6px", marginBottom: "3px" }}>
+                                  <span style={{ fontWeight: 700, fontSize: "10px", minWidth: "65px", color: "#444" }}>Vendedor:</span>
+                                  <span>{venta.vendedor?.nombre || "-"}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* ── ITEMS TABLE ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: "11px" }}>
+                          <thead>
+                            <tr style={{ borderBottom: "1px solid #000", borderTop: "none" }}>
+                              <th style={{ padding: "7px 20px", textAlign: "left" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const, width: "60px" }}>Cant</th>
+                              <th style={{ padding: "7px 8px", textAlign: "left" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>Descripción</th>
+                              <th style={{ padding: "7px 8px", textAlign: "right" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const, width: "110px" }}>P. Unitario</th>
+                              <th style={{ padding: "7px 20px 7px 8px", textAlign: "right" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const, width: "90px" }}>Total</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {venta.ven_detalle?.map((item: any) => (
-                              <tr key={item.id} className="align-top">
-                                <td className="py-1">{item.cantidad} {item.inv_productos?.medida || ""}</td>
-                                <td className="py-1 pr-1">
-                                  {item.inv_productos?.nombre}
-                                  <div className="text-[10px] text-gray-600">Q{item.precio_aplicado?.toFixed(2)} c/u</div>
-                                </td>
-                                <td className="py-1 text-right">Q{item.subtotal?.toFixed(2)}</td>
+                            {venta.ven_detalle?.map((item: any, idx: number) => (
+                              <tr key={idx} style={{ borderBottom: "1px solid #e5e5e5" }}>
+                                <td style={{ padding: "5px 20px" }}>{item.cantidad} {item.inv_productos?.medida || ""}</td>
+                                <td style={{ padding: "5px 8px" }}>{item.inv_productos?.nombre}</td>
+                                <td style={{ padding: "5px 8px", textAlign: "right" as const }}>Q{item.precio_aplicado?.toFixed(2)}</td>
+                                <td style={{ padding: "5px 20px 5px 8px", textAlign: "right" as const, fontWeight: 700 }}>Q{item.subtotal?.toFixed(2)}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
-                        <div className="border-t-2 border-dashed border-black mt-1"></div>
-                        <div className="flex justify-between items-center text-sm font-black py-1">
-                          <span>TOTAL:</span>
-                          <span>Q{venta?.total?.toFixed(2)}</span>
-                        </div>
-                        <div className="border-t-2 border-dashed border-black mb-2"></div>
-                        <div className="text-center text-[10px] space-y-1">
-                          <p className="font-bold text-xs mt-2 uppercase">¡Gracias por su compra!</p>
-                          <p className="mt-1"><span className="font-bold uppercase">Vendedor:</span> {venta.vendedor?.nombre || "-"}</p>
-                          <p className="mt-2 text-center">
-                            {new Date(venta.created_at).toLocaleDateString("es-GT")}{" "}
-                            {new Date(venta.created_at).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        </div>
-                      </div>
+
+                        {/* ── FOOTER ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, borderTop: "2px solid #000" }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ padding: "20px", textAlign: "center" as const, verticalAlign: "middle" }}>
+                                <div style={{ fontWeight: 900, fontSize: "14px", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>¡Gracias por su compra!</div>
+                              </td>
+                              <td style={{ padding: "12px 20px", verticalAlign: "middle", width: "250px" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse" as const }}>
+                                  <tbody>
+                                    <tr>
+                                      <td style={{ paddingTop: "5px", fontWeight: 900, fontSize: "16px" }}>TOTAL:</td>
+                                      <td style={{ paddingTop: "5px", fontWeight: 900, fontSize: "20px", textAlign: "right" as const }}>Q{venta?.total?.toFixed(2)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </>
                     ) : (
-                      <div className="text-center text-red-500 text-sm">No se encontró la venta.</div>
+                      <div className="flex items-center justify-center h-64 text-muted-foreground italic">
+                        Cargando detalle de venta...
+                      </div>
                     )}
                   </div>
+                  </ScaledDocument>
                 </div>
               </div>
-            )}
+              )}
 
-            {tab === "factura" && (
-              <div className="flex-1 overflow-y-auto p-5 bg-gray-50 space-y-4">
+              {tab === "factura" && (
+                <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {infileResult?.resultado ? (
                   <div className="space-y-4">
                     <div className="space-y-3 shrink-0">
+                      {/* Status banner: certificado o anulado */}
                       {(() => {
                         const currentDte = venta?.dte_documentos?.find((d: any) => d.uuid_infile === infileResult?.uuid);
-                        const isAnulado = currentDte?.estado === "anulado";
-                        
-                        if (isAnulado) {
-                          return (
-                            <div className="flex items-center gap-2 justify-center py-1 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-900/50">
-                              <AlertCircle className="size-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                              <div className="flex flex-col text-left">
-                                <p className="font-bold text-sm text-red-600 dark:text-red-400 leading-none uppercase tracking-wide">Factura Anulada</p>
-                                <p className="text-red-500/70 dark:text-red-400/50 text-[10px] mt-1 leading-none italic">Documento invalidado ante la SAT</p>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div className="flex items-center gap-2 justify-center py-1">
-                            <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        if (currentDte?.estado === "anulado") return (
+                          <div className="flex items-center gap-2 justify-center py-3 px-4 bg-red-500/10 rounded-xl border border-red-400/50">
+                            <AlertCircle className="size-5 text-red-600 dark:text-red-400 shrink-0" />
                             <div className="flex flex-col text-left">
-                              <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400 leading-none uppercase tracking-wide">¡Factura Certificada!</p>
-                              <p className="text-gray-500 dark:text-gray-400 text-[10px] mt-1 leading-none">Validada y autorizada por la SAT vía INFILE</p>
+                              <p className="font-bold text-sm text-red-600 dark:text-red-400 leading-none uppercase tracking-wide">Factura Anulada</p>
+                              <p className="text-red-500/70 text-[10px] mt-1 leading-none italic">Documento invalidado ante la SAT</p>
+                            </div>
+                          </div>
+                        );
+                        return (
+                          <div className="flex items-center gap-3 justify-center py-3 px-4 bg-sky-500/10 rounded-xl border border-sky-400/50 ring-1 ring-sky-400/10">
+                            <CheckCircle2 className="size-5 text-sky-600 dark:text-sky-400 shrink-0" />
+                            <div className="flex flex-col text-left">
+                              <p className="font-bold text-sm text-sky-600 dark:text-sky-400 leading-none uppercase tracking-wide">¡Factura Certificada!</p>
+                              <p className="text-sky-500/70 dark:text-sky-400/50 text-[10px] mt-1 leading-none">Validada y autorizada por la SAT vía INFILE</p>
                             </div>
                           </div>
                         );
@@ -705,160 +696,177 @@ export default function ReceiptModal({
                         
                         <button
                           onClick={() => {
-                            const content = document.getElementById("dte-print-container")?.innerHTML;
+                          const content = document.getElementById("dte-print-container")?.innerHTML;
                             if (!content) return;
                             const iframe = document.createElement("iframe");
                             iframe.style.display = "none";
                             document.body.appendChild(iframe);
                             const doc = iframe.contentWindow?.document;
                             if (doc) {
-                              doc.open();
-                              doc.write(`<html><head><title>Factura_DTE</title><style>
-                                @page { margin: 0; size: 80mm 297mm; }
-                                body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 4mm; color: black; line-height: 1.2; background: white; }
-                                .flex { display: flex; } .flex-col { flex-direction: column; } .justify-between { justify-content: space-between; } .items-center { align-items: center; }
-                                .text-center { text-align: center; } .text-right { text-align: right; } .text-left { text-align: left; }
-                                .font-black { font-weight: 900; } .font-bold { font-weight: 700; } .uppercase { text-transform: uppercase; } .w-full { width: 100%; }
-                                .border-t-2 { border-top-width: 2px; } .border-dashed { border-top-style: dashed; } .border-black { border-color: black; }
-                                .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; } .mb-2 { margin-bottom: 0.5rem; } .mt-1 { margin-top: 0.25rem; } .mt-2 { margin-top: 0.5rem; }
-                                table { border-collapse: collapse; width: 100%; } th, td { vertical-align: top; padding: 2px 0; }
-                                .text-2xl { font-size: 1.5rem; line-height: 2rem; } .text-sm { font-size: 0.875rem; } .text-xs { font-size: 0.75rem; } .break-all { word-break: break-all; }
-                                .space-y-1 > * + * { margin-top: 0.25rem; }
-                              </style></head><body>${content}</body></html>`);
-                              doc.close();
-                              setTimeout(() => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 250);
+                               doc.open();
+                               doc.write(`<html><head><title>Factura_DTE</title><style>
+                                 @page { margin: 0; size: 8.5in 5.5in; }
+                                 @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+                                 * { box-sizing: border-box; }
+                                 body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; width: 100%; margin: 0; padding: 20px 20px 0 20px; color: black; line-height: 1.3; background: white; }
+                                 table { border-collapse: collapse; width: 100%; } th, td { vertical-align: top; }
+                                 p, h1, h2, h3, div { margin: 0; }
+                               </style></head><body>${content}</body></html>`);
+                               doc.close();
+                               const images = Array.from(iframe.contentDocument?.images ?? []) as HTMLImageElement[];
+                               if (images.length > 0) {
+                                 let loaded = 0;
+                                 const tryPrint = () => { loaded++; if (loaded >= images.length) { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1500); } };
+                                 images.forEach(img => { if (img.complete) { tryPrint(); } else { img.onload = tryPrint; img.onerror = tryPrint; } });
+                               } else {
+                                 setTimeout(() => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 250);
+                               }
                             }
                           }}
                           className={`${isReadonly ? 'w-full' : 'w-1/2'} flex items-center justify-center gap-2 px-3 py-2.5 bg-transparent text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 rounded-lg font-bold text-sm hover:bg-blue-50 dark:hover:bg-blue-950 transition cursor-pointer`}
                         >
                           <Printer className="size-4" /> Imprimir
                         </button>
-                        {isSuper && (
-                          <button
-                            onClick={handleDownloadXML}
-                            className="flex items-center justify-center gap-2 px-3 py-2 bg-zinc-800 text-zinc-100 rounded-lg font-bold text-[10px] uppercase hover:bg-zinc-700 transition cursor-pointer"
-                            title="Debug: Descargar XML"
-                          >
-                            <Code className="size-3" /> XML Debug
-                          </button>
-                        )}
                       </div>
                     </div>
 
-                    <div className="bg-gray-100 rounded-xl p-4 overflow-y-auto">
+                    <div className="bg-muted/10 rounded-xl p-2 sm:p-4 overflow-y-auto">
+                      <ScaledDocument>
                       <div
                         id="dte-print-container"
-                        className="bg-white p-4 w-full max-w-[320px] font-mono text-black text-xs shadow-md mx-auto leading-tight"
+                        style={{ width: 816, minWidth: 816, backgroundColor: "white", color: "black", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11px", boxSizing: "border-box" as const, border: "1px solid #000", paddingTop: "20px" }}
                       >
-                        <div className="text-center mb-2">
-                          <h1 className="text-2xl font-black uppercase">{getEmisorConfig().nombreComercial}</h1>
-                          <p>{getEmisorConfig().direccion.direccion}, {getEmisorConfig().direccion.municipio}, {getEmisorConfig().direccion.departamento}</p>
-                          <p>Tel: {getEmisorConfig().telefono}</p>
-                          <p className="mt-1 font-bold text-[10px]">{getEmisorConfig().nombreEmisor}</p>
-                          <p className="text-[10px]">NIT: {getEmisorConfig().nitEmisor}</p>
-                        </div>
-
-                        <div className="border-t-2 border-dashed border-black"></div>
-
-                        <div>
-                          <p className="text-center font-bold uppercase mt-1 mb-1">FACTURA ELECTRÓNICA</p>
-                          <p><span className="font-bold">Serie:</span> {infileResult.serie}</p>
-                          <p><span className="font-bold">Número:</span> {infileResult.numero}</p>
-                          <p className="mt-1 flex items-baseline gap-1 leading-none flex-wrap">
-                            <span className="font-bold uppercase text-[10px]">UUID:</span>
-                            <span className="text-[10px] text-gray-700">{infileResult.uuid}</span>
-                          </p>
-                          <p className="mt-1"><span className="font-bold">Fecha:</span> {infileResult.fecha ? new Date(infileResult.fecha).toLocaleString("es-GT") : "-"}</p>
-                        </div>
-
-                        <div className="border-t-2 border-dashed border-black mt-1"></div>
-
-                        <div className="mt-1 mb-1">
-                          <p><span className="font-bold uppercase">Cod. Venta:</span> {venta?.id?.substring(0, 3).toUpperCase()}-${venta?.id?.substring(3, 6).toUpperCase()}</p>
-                          <p><span className="font-bold uppercase">Cliente:</span> {nombreReceptor.trim() || "CONSUMIDOR FINAL"}</p>
-                          <p><span className="font-bold uppercase">NIT:</span> {nitReceptor.trim() || "CF"}</p>
-                        </div>
-
-                        <div className="border-t-2 border-dashed border-black"></div>
-
-                        <table className="w-full text-left mt-1 mb-1">
-                          <thead>
+                        {/* ── HEADER: logo left, DTE info right, thick bottom border ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, borderBottom: "2px solid #000" }}>
+                          <tbody>
                             <tr>
-                              <th className="py-1 uppercase">Cant</th>
-                              <th className="py-1 uppercase">Descripción</th>
-                              <th className="py-1 text-right uppercase">Total</th>
+                              <td style={{ padding: "10px 16px", verticalAlign: "middle", width: "55%" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                                  <img src="/logos/LaArada.png" alt="Logo" style={{ width: "36px", height: "36px", objectFit: "contain" as const, filter: "brightness(0)", flexShrink: 0 }} />
+                                  <div>
+                                    <div style={{ fontWeight: 900, fontSize: "18px", letterSpacing: "0.04em", textTransform: "uppercase" as const, lineHeight: 1, color: "#000" }}>{getEmisorConfig().nombreComercial}</div>
+                                    <div style={{ fontSize: "8px", fontStyle: "italic" as const, marginTop: "2px", color: "#444" }}>Construyendo Junto a ti el Futuro</div>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: "8px", color: "#333" }}>{getEmisorConfig().direccion.direccion}, {getEmisorConfig().direccion.municipio}, {getEmisorConfig().direccion.departamento} | TEL: {getEmisorConfig().telefono}</div>
+                                <div style={{ fontSize: "10px", color: "#333" }}>{getEmisorConfig().nombreEmisor} | NIT: {getEmisorConfig().nitEmisor}</div>
+                              </td>
+                              <td style={{ padding: "10px 16px", verticalAlign: "middle", textAlign: "right" as const, width: "45%" }}>
+                                <div style={{ fontWeight: 900, fontSize: "15px", textTransform: "uppercase" as const, letterSpacing: "0.05em", color: "#000" }}>FACTURA ELECTRÓNICA</div>
+                                <div style={{ fontSize: "8px", marginTop: "3px", color: "#555", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>Documento Tributario Electrónico</div>
+                                <div style={{ fontSize: "10px", marginTop: "6px" }}><strong>Serie:</strong> {infileResult.serie} &nbsp;&nbsp; <strong>No.:</strong> {infileResult.numero}</div>
+                                <div style={{ fontSize: "9px", marginTop: "2px" }}><strong>Fecha de certificación:</strong> {infileResult.fecha ? new Date(infileResult.fecha).toLocaleString("es-GT") : "-"}</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* ── CUSTOMER ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, borderBottom: "1px solid #000" }}>
+                          <tbody>
+                            <tr>
+                              <td style={{ padding: "9px 20px", width: "55%", verticalAlign: "top" }}>
+                                <div style={{ display: "flex", gap: "6px", marginBottom: "3px" }}>
+                                  <span style={{ fontWeight: 700, fontSize: "10px", minWidth: "55px", color: "#444" }}>Cliente:</span>
+                                  <span>{nombreReceptor.trim() || "CONSUMIDOR FINAL"}</span>
+                                </div>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <span style={{ fontWeight: 700, fontSize: "10px", minWidth: "55px", color: "#444" }}>NIT:</span>
+                                  <span>{nitReceptor.trim() || "CF"}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: "9px 20px", width: "45%", verticalAlign: "top" }}>
+                                <div style={{ display: "flex", gap: "6px", marginBottom: "3px" }}>
+                                  <span style={{ fontWeight: 700, fontSize: "10px", minWidth: "65px", color: "#444" }}>Vendedor:</span>
+                                  <span>{venta?.vendedor?.nombre || "-"}</span>
+                                </div>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <span style={{ fontWeight: 700, fontSize: "10px", minWidth: "65px", color: "#444" }}>Cod. Venta:</span>
+                                  <span>{venta?.id?.substring(0, 3).toUpperCase()}-{venta?.id?.substring(3, 6).toUpperCase()}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        {/* ── ITEMS TABLE ── */}
+                        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: "11px" }}>
+                          <thead>
+                            <tr style={{ borderBottom: "1px solid #000", borderTop: "none" }}>
+                              <th style={{ padding: "7px 20px", textAlign: "left" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const, width: "60px" }}>Cant</th>
+                              <th style={{ padding: "7px 8px", textAlign: "left" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>Descripción</th>
+                              <th style={{ padding: "7px 8px", textAlign: "right" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const, width: "110px" }}>P. Unit./IVA</th>
+                              <th style={{ padding: "7px 20px 7px 8px", textAlign: "right" as const, fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em", textTransform: "uppercase" as const, width: "90px" }}>Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {venta?.ven_detalle?.map((item: any, idx: number) => (
-                              <tr key={idx} className="align-top">
-                                <td className="py-1">{item.cantidad} {item.inv_productos?.medida || ""}</td>
-                                <td className="py-1 pr-1">
-                                  {item.inv_productos?.nombre}
-                                  <div className="text-[10px] text-gray-600">Q{item.precio_aplicado?.toFixed(2)} c/u</div>
-                                </td>
-                                <td className="py-1 text-right">Q{item.subtotal?.toFixed(2)}</td>
+                              <tr key={idx} style={{ borderBottom: "1px solid #e5e5e5" }}>
+                                <td style={{ padding: "5px 20px" }}>{item.cantidad} {item.inv_productos?.medida || ""}</td>
+                                <td style={{ padding: "5px 8px" }}>{item.inv_productos?.nombre}</td>
+                                <td style={{ padding: "5px 8px", textAlign: "right" as const }}>Q{item.precio_aplicado?.toFixed(2)}</td>
+                                <td style={{ padding: "5px 20px 5px 8px", textAlign: "right" as const, fontWeight: 700 }}>Q{item.subtotal?.toFixed(2)}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
 
-                        <div className="border-t-2 border-dashed border-black"></div>
-
-                        <div className="py-1">
-                          {(() => {
-                            const total = venta?.total ?? 0;
-                            const gravable = parseFloat((total / 1.12).toFixed(2));
-                            const iva = parseFloat((total - gravable).toFixed(2));
-                            return (
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>Base Gravable:</span>
-                                  <span>Q{gravable.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>IVA (12%):</span>
-                                  <span>Q{iva.toFixed(2)}</span>
-                                </div>
-                                <div className="border-t-2 border-dashed border-black mt-1 mb-1"></div>
-                                <div className="flex justify-between items-center font-black text-sm">
-                                  <span>TOTAL:</span>
-                                  <span>Q{total.toFixed(2)}</span>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        <div className="border-t-2 border-dashed border-black"></div>
-
-                        <div className="text-center text-[10px] mt-2 space-y-1">
-                          <p className="font-bold uppercase">CERTIFICADOR: INFILE, S.A.</p>
-                          <p>NIT: 1252133-7</p>
-                          <p className="mt-1">Documento Tributario Electrónico</p>
-                          <p>Autorizado por SAT Guatemala</p>
-                          {infileResult.alertas_infile && (
-                            <p className="font-bold mt-2 uppercase">*** PRUEBAS ***<br/>No válido fiscalmente</p>
-                          )}
-                          <p className="mt-2">¡Gracias por su compra!</p>
-                          <p><span className="font-bold uppercase">Vendedor:</span> {venta?.vendedor?.nombre || "-"}</p>
-                        </div>
+                        {/* ── FOOTER ── */}
+                        {(() => {
+                          const total = venta?.total ?? 0;
+                          const gravable = parseFloat((total / 1.12).toFixed(2));
+                          const iva = parseFloat((total - gravable).toFixed(2));
+                          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(`https://report.feel.com.gt/ingfac/verificar?numero_autorizacion=${infileResult.uuid}`)}`;
+                          return (
+                            <table style={{ width: "100%", borderCollapse: "collapse" as const, borderTop: "2px solid #000" }}>
+                              <tbody>
+                                <tr>
+                                  {/* Left: auth info + gracias */}
+                                  <td style={{ padding: "12px 20px", verticalAlign: "top" }}>
+                                    <div style={{ fontSize: "8px", fontWeight: 700, textTransform: "uppercase" as const, marginBottom: "2px", color: "#555" }}>Número de Autorización:</div>
+                                    <div style={{ fontSize: "8px", wordBreak: "break-all" as const, color: "#222" }}>{infileResult.uuid}</div>
+                                    <div style={{ fontSize: "8px", marginTop: "4px", color: "#777" }}>INFILE, S.A. / NIT: 1252133-7</div>
+                                    <div style={{ fontWeight: 900, fontSize: "12px", textAlign: "center" as const, marginTop: "12px", letterSpacing: "0.06em" }}>¡GRACIAS POR SU COMPRA!</div>
+                                  </td>
+                                  {/* Center: totals */}
+                                  <td style={{ padding: "12px 16px", verticalAlign: "top", width: "185px" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: "10px" }}>
+                                      <tbody>
+                                        <tr>
+                                          <td style={{ paddingBottom: "3px", color: "#555" }}>Base Gravable:</td>
+                                          <td style={{ paddingBottom: "3px", textAlign: "right" as const }}>Q{gravable.toFixed(2)}</td>
+                                        </tr>
+                                        <tr>
+                                          <td style={{ paddingBottom: "3px", color: "#555" }}>IVA (12%):</td>
+                                          <td style={{ paddingBottom: "3px", textAlign: "right" as const }}>Q{iva.toFixed(2)}</td>
+                                        </tr>
+                                        <tr style={{ borderTop: "1px solid #000" }}>
+                                          <td style={{ paddingTop: "5px", fontWeight: 900, fontSize: "13px" }}>TOTAL:</td>
+                                          <td style={{ paddingTop: "5px", fontWeight: 900, fontSize: "15px", textAlign: "right" as const }}>Q{total.toFixed(2)}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </td>
+                                  {/* Right: QR */}
+                                  <td style={{ padding: "12px 14px", verticalAlign: "top", textAlign: "center" as const, width: "110px" }}>
+                                    <img src={qrUrl} alt="QR SAT" style={{ width: "90px", height: "90px", display: "block" as const, margin: "0 auto" }} />
+                                    <div style={{ fontSize: "7px", color: "#888", marginTop: "3px" }}>Verificar en SAT</div>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          );
+                        })()}
                       </div>
+                      </ScaledDocument>
                     </div>
 
-                    <div className="bg-white rounded-xl border shadow-sm p-4 space-y-2">
-                       {infileResult.alertas_infile && infileResult.descripcion_alertas_infile?.length ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                          <p className="text-xs font-bold text-amber-700 uppercase mb-1">⚠ Alerta INFILE</p>
-                          {infileResult.descripcion_alertas_infile.map((a, i) => (
-                            <p key={i} className="text-xs text-amber-700">{a}</p>
-                          ))}
-                        </div>
-                      ) : null}
+                    <div className="pt-2">
+
                       {venta?.dte_documentos?.find((d: any) => d.uuid_infile === infileResult?.uuid)?.estado === "anulado" ? (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                          <p className="text-sm font-bold text-red-700 uppercase">Factura Anulada</p>
-                          <p className="text-xs text-red-600 mt-1">Este documento fue invalidado y reportado a la SAT.</p>
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-center">
+                          <p className="text-sm font-bold text-destructive uppercase">Factura Anulada</p>
+                          <p className="text-xs text-destructive mt-1">Este documento fue invalidado y reportado a la SAT.</p>
                           {!isReadonly && (
                             <button
                               onClick={() => {
@@ -868,7 +876,7 @@ export default function ReceiptModal({
                                   dte_documentos: venta.dte_documentos.filter((d: any) => d.estado !== "anulado")
                                 });
                               }}
-                              className="mt-3 w-full py-2 bg-white text-red-700 rounded-lg border border-red-200 text-sm font-bold hover:bg-red-100 transition shadow-sm cursor-pointer"
+                              className="mt-3 w-full py-2 bg-destructive/10 border border-destructive/20 text-destructive dark:text-red-400 rounded-lg text-sm font-bold hover:bg-destructive/20 transition shadow-sm cursor-pointer"
                             >
                               Generar Nueva Factura
                             </button>
@@ -876,14 +884,13 @@ export default function ReceiptModal({
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <p className="text-center text-[10px] text-gray-500 italic mt-2">Este documento ya fue certificado en la SAT.</p>
                           {!isReadonly && venta?.dte_documentos?.some((d: any) => d.estado === "certificado" && d.uuid_infile === infileResult?.uuid) && (
                             <div className="space-y-2">
-                              {anularError && <p className="text-red-600 text-xs text-center mt-2 font-bold">{anularError}</p>}
+                              {anularError && <p className="text-destructive text-xs text-center mt-2 font-bold">{anularError}</p>}
                               <button
                                 onClick={handleAnular}
                                 disabled={anulando}
-                                className="w-full mt-2 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600 hover:bg-red-100 transition cursor-pointer font-bold disabled:opacity-50"
+                                className="w-full py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive dark:text-red-400 hover:bg-destructive/20 transition cursor-pointer font-bold disabled:opacity-50"
                               >
                                 {anulando ? "Anulando..." : "Anular Factura"}
                               </button>
@@ -897,7 +904,7 @@ export default function ReceiptModal({
                   <div className="space-y-4">
                     {venta ? (
                       <div className="space-y-4">
-                        <div className="bg-white rounded-xl border shadow-sm p-4 space-y-2">
+                        <div className="bg-muted/30 rounded-xl border p-4 space-y-2">
                           <p className="text-xs font-bold text-gray-500 uppercase">Resumen de Venta</p>
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Venta No.</span>
@@ -1011,15 +1018,16 @@ export default function ReceiptModal({
           </div>
         )}
 
-        <div className="p-4 border-t bg-gray-50 flex justify-end shrink-0">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg font-bold text-sm hover:bg-gray-300 transition cursor-pointer"
-          >
-            Cerrar
-          </button>
-        </div>
+          <div className="p-4 border-t bg-muted/50 flex justify-end shrink-0">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition cursor-pointer border"
+            >
+              Cerrar
+            </button>
+          </div>
+        </MagicCard>
       </div>
-    </div>
+    </>
   );
 }

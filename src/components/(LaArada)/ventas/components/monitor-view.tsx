@@ -81,7 +81,7 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
   );
 
   const counts = useMemo(() => {
-    const c = { Pendiente: 0, Entregado: 0, Anulado: 0 };
+    const c = { Pendiente: 0, Entregado: 0 };
     data.forEach((order: any) => {
       const estado = String(order.estado || "Pendiente")
         .trim()
@@ -96,7 +96,6 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
       if (matchAnio && matchMes && matchSemana) {
         if (estado === "pendiente") c.Pendiente++;
         else if (estado === "entregado") c.Entregado++;
-        else if (estado === "anulado") c.Anulado++;
       }
     });
     return c;
@@ -118,6 +117,8 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
       const estado = String(order.estado || "Pendiente")
         .trim()
         .toLowerCase();
+
+      if (estado === "anulado") return false;
 
       const matchEstado =
         filtroEstado === "" || estado === filtroEstado.trim().toLowerCase();
@@ -166,17 +167,17 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
   }, [data, filtroEstado, filtroAnio, filtroMes, filtroSemana]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 items-start animate-in fade-in duration-300">
-      <aside className="w-full md:w-[15%] shrink-0 flex flex-col gap-6 sticky md:top-6 text-xs">
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-muted-foreground uppercase text-xs">
+    <div className="flex flex-col gap-6 items-start animate-in fade-in duration-300">
+      <div className="w-full flex flex-col xl:flex-row xl:items-end justify-start gap-4 xl:gap-8 sticky md:top-6 bg-background/95 z-20 pb-4 border-b text-xs">
+        <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-muted-foreground uppercase text-[10px]">
             Filtrar por fecha
           </h3>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <select
               value={filtroAnio}
               onChange={(e) => setFiltroAnio(Number(e.target.value))}
-              className="w-1/2 p-3 border rounded-xl bg-background font-bold outline-none focus:ring-2 focus:ring-primary/20"
+              className="px-3 py-2 flex-grow border rounded-xl bg-background font-bold outline-none focus:ring-2 focus:ring-primary/20"
             >
               {[2025, 2026, 2027].map((anio) => (
                 <option key={anio} value={anio}>
@@ -190,7 +191,7 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                 setFiltroMes(Number(e.target.value));
                 setFiltroSemana("Todas");
               }}
-              className="w-1/2 p-3 border rounded-xl bg-background font-bold capitalize outline-none focus:ring-2 focus:ring-primary/20"
+              className="px-3 py-2 flex-grow border rounded-xl bg-background font-bold capitalize outline-none focus:ring-2 focus:ring-primary/20"
             >
               {[...Array(12)].map((_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -200,30 +201,30 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                 </option>
               ))}
             </select>
+            <select
+              value={filtroSemana}
+              onChange={(e) =>
+                setFiltroSemana(
+                  e.target.value === "Todas" ? "Todas" : Number(e.target.value),
+                )
+              }
+              className="px-3 py-2 flex-grow border rounded-xl bg-background font-bold outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="Todas">Todas las semanas</option>
+              {semanasDelMes.map(({ week, label }) => (
+                <option key={week} value={week}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            value={filtroSemana}
-            onChange={(e) =>
-              setFiltroSemana(
-                e.target.value === "Todas" ? "Todas" : Number(e.target.value),
-              )
-            }
-            className="w-full p-3 border rounded-xl bg-background font-bold outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="Todas">Todas las semanas</option>
-            {semanasDelMes.map(({ week, label }) => (
-              <option key={week} value={week}>
-                {label}
-              </option>
-            ))}
-          </select>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-muted-foreground uppercase text-xs">
+        <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-muted-foreground uppercase text-[10px]">
             Filtrar por estado
           </h3>
-          <div className="grid grid-cols-2 md:flex md:flex-col gap-3">
+          <div className="flex gap-3 h-full items-center">
             {[
               {
                 v: "Pendiente",
@@ -233,17 +234,13 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                 v: "Entregado",
                 c: "green",
               },
-              {
-                v: "Anulado",
-                c: "red",
-              },
             ]
               .filter(({ v }) => counts[v as keyof typeof counts] > 0)
               .map(({ v, c }) => (
                 <button
                   key={v}
                   onClick={() => setFiltroEstado(filtroEstado === v ? "" : v)}
-                  className={`flex items-center justify-center p-3 border-[3px] rounded-xl cursor-pointer transition-all bg-${c}-500/10 text-${c}-600 ${
+                  className={`flex items-center justify-center px-4 py-2 border-[3px] rounded-xl cursor-pointer transition-all bg-${c}-500/10 text-${c}-600 ${
                     filtroEstado === v
                       ? `border-${c}-500`
                       : "border-transparent hover:opacity-70"
@@ -256,9 +253,9 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
               ))}
           </div>
         </div>
-      </aside>
+      </div>
 
-      <div className="flex-1 w-full flex flex-col gap-8">
+      <div className="w-full flex flex-col gap-8">
         {groupedOrders.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border-2 border-border rounded-xl bg-card font-bold uppercase">
             No hay pedidos para mostrar.
@@ -290,7 +287,7 @@ export default function MonitorView({ items, orders, onStatusClick }: any) {
                   <div className="h-0.5 grow bg-border/50"></div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-4">
                   {group.orders.map((order: any) => {
                     const estadoNormalizado = String(
                       order.estado || "Pendiente",

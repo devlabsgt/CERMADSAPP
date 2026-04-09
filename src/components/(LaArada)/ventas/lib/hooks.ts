@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { getVentas, createVenta, getCatalogos, updateVenta, getVendedores } from "./actions";
@@ -42,6 +42,7 @@ export function useVentas(vendedorId?: string) {
   return useQuery({
     queryKey: ["ventas", vendedorId],
     queryFn: () => getVentas(vendedorId),
+    placeholderData: keepPreviousData,
   });
 }
 

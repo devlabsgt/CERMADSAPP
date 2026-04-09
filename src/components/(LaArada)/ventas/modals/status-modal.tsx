@@ -3,9 +3,11 @@ import { X } from "lucide-react";
 import { updateEstadoVenta } from "../lib/actions";
 import { MagicCard } from "@/components/ui/magic-card";
 import Swal from "sweetalert2";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function StatusModal({ isOpen, onClose, venta }: any) {
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   if (!isOpen || !venta) return null;
 
@@ -25,7 +27,7 @@ export default function StatusModal({ isOpen, onClose, venta }: any) {
         timer: 1500,
       });
 
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ["ventas"] });
     }
     setLoading(false);
   };
