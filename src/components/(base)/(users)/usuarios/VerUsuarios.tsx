@@ -45,6 +45,7 @@ export function VerUsuarios() {
     ventas: "Ventas",
     contabilidad: "Contabilidad",
     admin: "Administrador",
+    "admin-tec": "Admin. Técnico",
     rrhh: "Recursos Humanos",
     super: "Super Admin",
   };

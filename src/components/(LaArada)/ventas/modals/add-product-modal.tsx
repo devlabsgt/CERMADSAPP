@@ -46,10 +46,14 @@ export default function AddProductModal({
 
   const filteredProducts = useMemo(() => {
     if (!catalogos?.productos) return [];
-    if (!search) return catalogos.productos.slice(0, 5);
+    
+    // Solo productos activos
+    const activeProducts = catalogos.productos.filter(p => p.activo !== false);
+
+    if (!search) return activeProducts.slice(0, 5);
 
     const s = search.toLowerCase();
-    return catalogos.productos.filter(
+    return activeProducts.filter(
       (p) =>
         p.nombre.toLowerCase().includes(s) ||
         (p.codigo && p.codigo.toLowerCase().includes(s)),

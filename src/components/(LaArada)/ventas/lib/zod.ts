@@ -30,6 +30,7 @@ export type ProductoCatalogo = {
   precio_base: number;
   stock_actual: number;
   medida: string;
+  activo?: boolean;
 };
 
 export type ClienteCatalogo = {

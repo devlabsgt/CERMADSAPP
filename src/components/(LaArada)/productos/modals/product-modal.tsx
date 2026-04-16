@@ -6,7 +6,6 @@ import { ProductSchema, ProductFormValues } from "../lib/zod";
 import {
   useCreateProduct,
   useUpdateProduct,
-  useDeleteProduct,
 } from "../lib/hooks";
 import { getNextProductCode } from "../lib/actions";
 import { useEffect } from "react";
@@ -14,6 +13,7 @@ import { X, Trash2, Save, Package, AlertTriangle } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
 import Swal from "sweetalert2";
 import { useTheme } from "next-themes";
+import { useUser } from "@/components/(base)/providers/UserProvider";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -29,7 +29,12 @@ export default function ProductModal({
   const { theme } = useTheme();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
-  const deleteMutation = useDeleteProduct();
+
+  const user = useUser();
+  const metadata = user?.user_metadata || {};
+  const realRole = metadata.rol || user?.role || "user";
+  const canEditRestricted = ["super", "admin"].includes(realRole);
+  const canEditEstado = ["super", "admin", "ventas"].includes(realRole);
 
   const {
     register,
@@ -76,26 +81,6 @@ export default function ProductModal({
     prepareModal();
   }, [productToEdit, reset, isOpen, setValue]);
 
-  const handleDelete = () => {
-    const isDark = theme === "dark";
-    Swal.fire({
-      title: "¿Eliminar producto?",
-      text: "Esta acción no se puede deshacer y perdera todos los registros relacionados a este producto",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#3b82f6",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      background: isDark ? "#18181b" : "#ffffff",
-      color: isDark ? "#ffffff" : "#000000",
-    }).then((result) => {
-      if (result.isConfirmed && productToEdit?.id) {
-        deleteMutation.mutate(productToEdit.id);
-        onClose();
-      }
-    });
-  };
 
   const onSubmit = async (data: any) => {
     const res = productToEdit?.id
@@ -146,7 +131,8 @@ export default function ProductModal({
               </label>
               <input
                 {...register("codigo")}
-                className={`w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${errors.codigo ? "border-red-500" : "border-input"}`}
+                disabled={!canEditRestricted}
+                className={`w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none transition-all ${!canEditRestricted ? "opacity-60 cursor-not-allowed" : "focus:ring-2 focus:ring-primary/20"} ${errors.codigo ? "border-red-500" : "border-input"}`}
               />
               {errors.codigo && (
                 <span className="text-[10px] text-red-500 font-bold uppercase">
@@ -181,7 +167,8 @@ export default function ProductModal({
                 step="0.01"
                 inputMode="decimal"
                 {...register("precio_base")}
-                className="w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input focus:ring-2 focus:ring-primary/20"
+                disabled={!canEditRestricted}
+                className={`w-full h-10 px-3 border rounded-lg bg-background/50 text-sm outline-none border-input transition-all ${!canEditRestricted ? "opacity-60 cursor-not-allowed" : "focus:ring-2 focus:ring-primary/20"}`}
               />
             </div>
             <div className="space-y-1">
@@ -222,7 +209,7 @@ export default function ProductModal({
           </div>
 
           {productToEdit && (
-            <div className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/5">
+            <div className={`flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/5 ${!canEditEstado ? "opacity-70" : ""}`}>
               <div className="space-y-0.5">
                 <label className="text-xs font-bold text-foreground/70 uppercase">
                   Estado del Producto
@@ -233,10 +220,11 @@ export default function ProductModal({
                     : "No disponible en el catálogo"}
                 </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className={`relative inline-flex items-center ${canEditEstado ? "cursor-pointer" : "cursor-not-allowed"}`}>
                 <input
                   type="checkbox"
                   {...register("activo")}
+                  disabled={!canEditEstado}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-red-500/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
@@ -245,17 +233,7 @@ export default function ProductModal({
           )}
 
           <div className="flex justify-between items-center pt-6">
-            <div>
-              {productToEdit && (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-500 border border-red-500/50 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer uppercase active:scale-95"
-                >
-                  <Trash2 className="size-4" /> Eliminar
-                </button>
-              )}
-            </div>
+            <div></div>
             <button
               type="submit"
               disabled={isSubmitting}

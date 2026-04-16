@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useUser } from "@/components/(base)/providers/UserProvider";
 import {
   Plus,
   Search,
@@ -21,6 +22,12 @@ import { cn } from "@/lib/utils";
 type ProductoCatalogo = ProductFormValues & { id: string };
 
 export default function ListadoProductos() {
+  const user = useUser();
+  const metadata = user?.user_metadata || {};
+  const realRole = metadata.rol || user?.role || "user";
+  const canViewStats = ["super", "admin"].includes(realRole);
+  const tableColSpan = canViewStats ? 7 : 6;
+
   const { data: productos = [], isLoading } = useProducts();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -110,38 +117,66 @@ export default function ListadoProductos() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-xs md:text-sm font-bold text-muted-foreground outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto"
-          >
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-            <option value="todos">Todos</option>
-          </select>
+          <div className="flex bg-muted/30 p-1 rounded-lg border w-full sm:w-auto gap-1">
+            <button
+              onClick={() => setStatusFilter("activos")}
+              className={cn(
+                "flex-1 sm:flex-none px-4 py-1.5 text-xs md:text-sm font-bold rounded-md transition-all cursor-pointer",
+                statusFilter === "activos"
+                  ? "bg-emerald-500 text-white shadow-md"
+                  : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5"
+              )}
+            >
+              ACTIVOS
+            </button>
+            <button
+              onClick={() => setStatusFilter("inactivos")}
+              className={cn(
+                "flex-1 sm:flex-none px-4 py-1.5 text-xs md:text-sm font-bold rounded-md transition-all cursor-pointer",
+                statusFilter === "inactivos"
+                  ? "bg-orange-500 text-white shadow-md"
+                  : "text-muted-foreground hover:text-orange-500 hover:bg-orange-500/5"
+              )}
+            >
+              INACTIVOS
+            </button>
+            <button
+              onClick={() => setStatusFilter("todos")}
+              className={cn(
+                "flex-1 sm:flex-none px-4 py-1.5 text-xs md:text-sm font-bold rounded-md transition-all cursor-pointer",
+                statusFilter === "todos"
+                  ? "bg-purple-500 text-white shadow-md"
+                  : "text-muted-foreground hover:text-purple-500 hover:bg-purple-500/5"
+              )}
+            >
+              TODOS
+            </button>
+          </div>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => setIsTopModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-4 py-2 rounded-lg font-bold hover:bg-amber-500/20 transition-all cursor-pointer active:scale-95 w-full sm:w-auto text-xs md:text-sm"
-          >
-            <Trophy className="size-4" />
-            TOP 5 VENTAS
-          </button>
-          <button
-            onClick={toggleAll}
-            disabled={filteredProductos.length === 0}
-            className="flex items-center justify-center gap-2 bg-muted/50 text-foreground border border-border px-4 py-2 rounded-lg font-bold hover:bg-muted transition-all cursor-pointer active:scale-95 w-full sm:w-auto text-xs md:text-sm disabled:opacity-50"
-          >
-            {allExpanded ? (
-              <Minimize2 className="size-4 text-blue-500" />
-            ) : (
-              <Maximize2 className="size-4 text-blue-500" />
-            )}
-            {allExpanded ? "CONTRAER" : "EXPANDIR"}
-          </button>
-        </div>
+        {canViewStats && (
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setIsTopModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-4 py-2 rounded-lg font-bold hover:bg-amber-500/20 transition-all cursor-pointer active:scale-95 w-full sm:w-auto text-xs md:text-sm"
+            >
+              <Trophy className="size-4" />
+              TOP 5 VENTAS
+            </button>
+            <button
+              onClick={toggleAll}
+              disabled={filteredProductos.length === 0}
+              className="flex items-center justify-center gap-2 bg-muted/50 text-foreground border border-border px-4 py-2 rounded-lg font-bold hover:bg-muted transition-all cursor-pointer active:scale-95 w-full sm:w-auto text-xs md:text-sm disabled:opacity-50"
+            >
+              {allExpanded ? (
+                <Minimize2 className="size-4 text-blue-500" />
+              ) : (
+                <Maximize2 className="size-4 text-blue-500" />
+              )}
+              {allExpanded ? "CONTRAER" : "EXPANDIR"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
@@ -163,16 +198,18 @@ export default function ListadoProductos() {
                 <th className="w-[15%] md:w-auto px-2 md:px-6 py-4 text-right">
                   Precio
                 </th>
-                <th className="w-[10%] md:w-auto px-2 md:px-6 py-4 text-center">
-                  Stats
-                </th>
+                {canViewStats && (
+                  <th className="w-[10%] md:w-auto px-2 md:px-6 py-4 text-center">
+                    Stats
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={tableColSpan}
                     className="px-6 py-8 text-center text-muted-foreground italic"
                   >
                     Cargando productos...
@@ -181,7 +218,7 @@ export default function ListadoProductos() {
               ) : filteredProductos.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={tableColSpan}
                     className="px-6 py-8 text-center text-muted-foreground"
                   >
                     No hay resultados.
@@ -239,25 +276,27 @@ export default function ListadoProductos() {
                         <td className="px-2 md:px-6 py-4 font-black text-foreground text-right whitespace-nowrap">
                           Q{prod.precio_base.toFixed(2)}
                         </td>
-                        <td className="px-2 md:px-6 py-4 text-center">
-                          <button
-                            onClick={(e) => toggleRow(prod.id, e)}
-                            className={cn(
-                              "p-2 rounded-lg transition-colors cursor-pointer group/btn",
-                              isExpanded
-                                ? "bg-blue-600 text-white shadow-md scale-105"
-                                : "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20",
-                            )}
-                          >
-                            <TrendingUp className="size-4 transition-transform" />
-                          </button>
-                        </td>
+                        {canViewStats && (
+                          <td className="px-2 md:px-6 py-4 text-center">
+                            <button
+                              onClick={(e) => toggleRow(prod.id, e)}
+                              className={cn(
+                                "p-2 rounded-lg transition-colors cursor-pointer group/btn",
+                                isExpanded
+                                  ? "bg-blue-600 text-white shadow-md scale-105"
+                                  : "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20",
+                              )}
+                            >
+                              <TrendingUp className="size-4 transition-transform" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
 
-                      {isExpanded && (
+                      {isExpanded && canViewStats && (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={tableColSpan}
                             className="p-0 border-b-4 border-blue-500/20"
                           >
                             <div className="bg-muted/10 animate-in slide-in-from-top-2 duration-200 border-x border-border/50 shadow-inner">

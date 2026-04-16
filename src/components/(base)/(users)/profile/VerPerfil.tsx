@@ -59,15 +59,16 @@ export default function VerPerfil({ isOpen, onClose, userId }: VerPerfilProps) {
     ventas: "Ventas",
     contabilidad: "Contabilidad",
     admin: "Administrador",
+    "admin-tec": "Admin. Técnico",
     rrhh: "Recursos Humanos",
     super: "Super Admin",
   };
 
   let roleOptions: string[] = [];
   if (sessionRole === "super") {
-    roleOptions = ["super", "admin", "contabilidad", "ventas", "rrhh", "user"];
+    roleOptions = ["super", "admin", "admin-tec", "contabilidad", "ventas", "rrhh", "user"];
   } else if (sessionRole === "admin") {
-    roleOptions = ["admin", "contabilidad", "ventas", "rrhh", "user"];
+    roleOptions = ["admin", "admin-tec", "contabilidad", "ventas", "rrhh", "user"];
   }
 
   const targetIsSuper = profile?.rol === "super";

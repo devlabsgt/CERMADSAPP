@@ -74,6 +74,15 @@ if (user) {
         return NextResponse.redirect(url);
       }
 
+      if (
+        realRole === "user" &&
+        pathname.startsWith("/cermadsa/laarada/")
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/not-found";
+        return NextResponse.redirect(url);
+      }
+
       if (requireAuth && !["super", "admin"].includes(realRole)) {
         const userAgent = request.headers.get("user-agent") || "Desconocido";
 

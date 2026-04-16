@@ -114,7 +114,7 @@ export default function DashboardLaArada() {
     return { totalMes, totalOrders, avgDaily, bestDayTotal, chartData };
   }, [ventas]);
 
-  const canViewContabilidad = ["super", "admin", "contabilidad"].includes(
+  const canViewContabilidad = ["super", "admin", "contabilidad", "tec-admin"].includes(
     effectiveRole,
   );
 
@@ -129,7 +129,7 @@ export default function DashboardLaArada() {
       className: canViewContabilidad
         ? "md:col-span-2 md:row-span-1"
         : "md:col-span-2 md:row-span-2",
-      allowedRoles: ["super", "admin", "contabilidad", "ventas", "user"],
+      allowedRoles: ["super", "admin", "ventas", "user"],
     },
     {
       id: "clientes",
@@ -139,7 +139,7 @@ export default function DashboardLaArada() {
       desc: "Cartera de clientes.",
       color: "border-blue-500/20 bg-blue-500/5 dark:border-blue-500/40",
       className: "md:col-span-1 md:row-span-1",
-      allowedRoles: ["super", "admin", "contabilidad", "ventas"],
+      allowedRoles: ["super", "admin", "ventas"],
     },
     {
       id: "creditos",
@@ -149,7 +149,7 @@ export default function DashboardLaArada() {
       desc: "Gestión de cobros.",
       color: "border-red-500/20 bg-red-500/5 dark:border-red-500/40",
       className: "md:col-span-1 md:row-span-1",
-      allowedRoles: ["super", "admin", "contabilidad", "ventas"],
+      allowedRoles: ["super", "admin", "ventas", "tec-admin", "contabilidad"],
     },
     {
       id: "contabilidad",
@@ -159,7 +159,7 @@ export default function DashboardLaArada() {
       desc: "Gestión financiera y reportes.",
       color: "border-indigo-500/20 bg-indigo-500/5 dark:border-indigo-500/40",
       className: "md:col-span-2 md:row-span-1",
-      allowedRoles: ["super", "admin", "contabilidad"],
+      allowedRoles: ["super", "admin", "contabilidad", "tec-admin"],
     },
     {
       id: "productos",
@@ -169,7 +169,7 @@ export default function DashboardLaArada() {
       desc: "Inventario.",
       color: "border-amber-500/20 bg-amber-500/5 dark:border-amber-500/40",
       className: "md:col-span-2 md:row-span-1",
-      allowedRoles: ["super", "admin", "contabilidad", "ventas"],
+      allowedRoles: ["super", "admin", "ventas", "tec-admin", "contabilidad"],
     },
     /* {
       id: "proveedores",
@@ -188,7 +188,7 @@ export default function DashboardLaArada() {
     item.allowedRoles.includes(effectiveRole),
   );
 
-  const canViewStats = ["super", "admin", "contabilidad"].includes(
+  const canViewStats = ["super", "admin"].includes(
     effectiveRole,
   );
 
@@ -272,6 +272,7 @@ export default function DashboardLaArada() {
                 >
                   <option value="super">SUPER (Real)</option>
                   <option value="admin">Admin</option>
+                  <option value="tec-admin">Tec. Admin</option>
                   <option value="contabilidad">Contabilidad</option>
                   <option value="ventas">Ventas</option>
                   <option value="rrhh">RRHH</option>

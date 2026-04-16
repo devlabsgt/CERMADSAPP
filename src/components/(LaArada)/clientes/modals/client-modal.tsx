@@ -6,12 +6,10 @@ import { ClientSchema, ClientFormValues } from "../lib/zod";
 import {
   useCreateClient,
   useUpdateClient,
-  useDeleteClient,
 } from "../lib/hooks";
 import { useEffect } from "react";
-import { X, Trash2, Save, User } from "lucide-react";
+import { X, Save, User } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
-import Swal from "sweetalert2";
 import { useTheme } from "next-themes";
 
 interface ClientModalProps {
@@ -28,7 +26,6 @@ export default function ClientModal({
   const { theme } = useTheme();
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
-  const deleteMutation = useDeleteClient();
 
   const {
     register,
@@ -61,27 +58,6 @@ export default function ClientModal({
       });
     }
   }, [clientToEdit, reset, isOpen]);
-
-  const handleDelete = () => {
-    const isDark = theme === "dark";
-    Swal.fire({
-      title: "¿Eliminar cliente?",
-      text: "Esta acción no se puede deshacer",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#3b82f6",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      background: isDark ? "#18181b" : "#ffffff",
-      color: isDark ? "#ffffff" : "#000000",
-    }).then((result) => {
-      if (result.isConfirmed && clientToEdit?.id) {
-        deleteMutation.mutate(clientToEdit.id);
-        onClose();
-      }
-    });
-  };
 
   const onSubmit = async (data: ClientFormValues) => {
     const res = clientToEdit?.id
@@ -214,17 +190,7 @@ export default function ClientModal({
           </div>
 
           <div className="flex justify-between items-center pt-6">
-            <div>
-              {clientToEdit && (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-500 border border-red-500/50 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer uppercase"
-                >
-                  <Trash2 className="size-4" /> Eliminar
-                </button>
-              )}
-            </div>
+            <div></div>
             <button
               type="submit"
               disabled={isSubmitting}

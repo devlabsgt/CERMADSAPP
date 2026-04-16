@@ -304,10 +304,17 @@ export default function SignUp({ isOpen, onClose }: SignUpProps) {
                         onChange={(e) => logic.setRol(e.target.value)}
                       >
                         <option value="user">Usuario (Estándar)</option>
-                        <option value="contabilidad">Contabilidad</option>
                         <option value="ventas">Ventas</option>
-                        <option value="admin">Administrador</option>
                         <option value="rrhh">Recursos Humanos</option>
+
+                        {(currentUserRole === "admin" || currentUserRole === "super") && (
+                          <>
+                            <option value="admin-tec">Admin. Técnico</option>
+                            <option value="admin">Administrador</option>
+                            <option value="contabilidad">Contabilidad</option>
+                          </>
+                        )}
+
                         {currentUserRole === "super" && (
                           <option value="super">Super Admin</option>
                         )}
