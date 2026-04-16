@@ -55,6 +55,7 @@ export default function ContabilidadView() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [tipoComprobante, setTipoComprobante] = useState<"TODO" | "FEL" | "RECIBO">("TODO");
 
   const [selectedVentaId, setSelectedVentaId] = useState<string | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -120,9 +121,21 @@ export default function ContabilidadView() {
         String(order.numero_recibo || "").includes(term) ||
         String(order.id || "").toLowerCase().includes(term);
 
-      return matchDate && matchSearch;
+      let matchTipo = true;
+      if (hasFullAccess && tipoComprobante !== "TODO") {
+        const hasCertificado = (order.dte_documentos || []).some(
+          (d: any) => d.estado === "certificado",
+        );
+        if (tipoComprobante === "FEL") {
+          matchTipo = hasCertificado;
+        } else if (tipoComprobante === "RECIBO") {
+          matchTipo = !hasCertificado;
+        }
+      }
+
+      return matchDate && matchSearch && matchTipo;
     });
-  }, [orders, startDate, endDate, monthYear, searchTerm]);
+  }, [orders, startDate, endDate, monthYear, searchTerm, tipoComprobante, hasFullAccess]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -412,6 +425,22 @@ export default function ContabilidadView() {
               className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
+          {hasFullAccess && (
+            <div className="space-y-1.5 min-w-[130px]">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">
+                Tipo
+              </label>
+              <select
+                value={tipoComprobante}
+                onChange={(e) => setTipoComprobante(e.target.value as any)}
+                className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="TODO">Todo</option>
+                <option value="FEL">FEL</option>
+                <option value="RECIBO">Recibo</option>
+              </select>
+            </div>
+          )}
           <div className="space-y-1.5 min-w-[200px] flex-1">
             <label className="text-[10px] font-bold uppercase text-muted-foreground">
               Buscar

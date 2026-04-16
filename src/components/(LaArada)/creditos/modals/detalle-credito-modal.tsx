@@ -320,7 +320,7 @@ export default function DetalleCreditoModal({
                                           minimumFractionDigits: 2,
                                         });
 
-                                        let texto = `👤 *${cliente?.nombre}*%0A%0A*${fV.d}, ${fV.t}*%0A\`\`\`Venta #${numV}: Q${totV}\`\`\`%0A%0A%0A📝 *Abonos:*%0A%0A`;
+                                        let texto = `👤 *${cliente?.nombre}*\n\n*${fV.d}, ${fV.t}*\n\`\`\`Venta #${numV}: Q${totV}\`\`\`\n\n\n📝 *Abonos:*\n\n`;
 
                                         venta.ven_pagos?.forEach(
                                           (pago: PagoHistorial) => {
@@ -333,16 +333,14 @@ export default function DetalleCreditoModal({
                                             ).toLocaleString("en-US", {
                                               minimumFractionDigits: 2,
                                             });
-                                            texto += `*${fP.d}, ${fP.t}*%0A\`\`\`Abono #${idA}: Q${monA}\`\`\`%0A%0A`;
+                                            texto += `*${fP.d}, ${fP.t}*\n\`\`\`Abono #${idA}: Q${monA}\`\`\`\n\n`;
                                           },
                                         );
 
-                                        texto += `🧾 *Saldo: Q${salV}*%0A%0A%0A*La Arada*%0A*_¡Gracias por sus pagos!_*`;
+                                        texto += `🧾 *Saldo: Q${salV}*\n\n\n*La Arada*\n*_¡Gracias por sus pagos!_*`;
 
-                                        window.open(
-                                          `https://wa.me/502${whatsappPhone.replace(/\s+/g, "")}?text=${texto}`,
-                                          "_blank",
-                                        );
+                                        const url = `https://api.whatsapp.com/send?phone=502${whatsappPhone.replace(/\s+/g, "")}&text=${encodeURIComponent(texto)}`;
+                                        window.open(url, "_blank");
                                         setWhatsappVentaId(null);
                                       }
                                     }}
