@@ -35,6 +35,7 @@ export default function ClientModal({
     formState: { errors, isSubmitting },
   } = useForm<ClientFormValues>({
     resolver: zodResolver(ClientSchema),
+    mode: "onSubmit",
     defaultValues: {
       nombre: "",
       nit: "C/F",
@@ -143,6 +144,8 @@ export default function ClientModal({
               </label>
               <input
                 {...register("telefono")}
+                inputMode="numeric"
+                type="tel"
                 className={`w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
                   errors.telefono ? "border-red-500" : "border-input"
                 }`}
