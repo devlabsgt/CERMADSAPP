@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClientSchema, ClientFormValues } from "../lib/zod";
 import {
@@ -10,7 +10,6 @@ import {
 import { useEffect } from "react";
 import { X, Save, User } from "lucide-react";
 import { MagicCard } from "@/components/ui/magic-card";
-import { useTheme } from "next-themes";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -23,12 +22,11 @@ export default function ClientModal({
   onClose,
   clientToEdit,
 }: ClientModalProps) {
-  const { theme } = useTheme();
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -61,9 +59,19 @@ export default function ClientModal({
   }, [clientToEdit, reset, isOpen]);
 
   const onSubmit = async (data: ClientFormValues) => {
+    // Trim values before sending
+    const trimmed: ClientFormValues = {
+      ...data,
+      nombre: data.nombre.trim(),
+      nit: data.nit.trim(),
+      direccion: data.direccion.trim(),
+      telefono: data.telefono.trim(),
+      email: data.email?.trim() ?? "",
+    };
+
     const res = clientToEdit?.id
-      ? await updateMutation.mutateAsync({ id: clientToEdit.id, data })
-      : await createMutation.mutateAsync(data);
+      ? await updateMutation.mutateAsync({ id: clientToEdit.id, data: trimmed })
+      : await createMutation.mutateAsync(trimmed);
 
     if (res?.error) {
       if (res.error.toLowerCase().includes("nit")) {
@@ -75,6 +83,11 @@ export default function ClientModal({
   };
 
   if (!isOpen) return null;
+
+  const inputClass = (hasError: boolean) =>
+    `w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
+      hasError ? "border-red-500" : "border-input"
+    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-foreground">
@@ -104,15 +117,23 @@ export default function ClientModal({
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Nombre */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-muted-foreground uppercase">
               Nombre Completo
             </label>
-            <input
-              {...register("nombre")}
-              className={`w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
-                errors.nombre ? "border-red-500" : "border-input"
-              }`}
+            <Controller
+              name="nombre"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  value={field.value ?? ""}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  className={inputClass(!!errors.nombre)}
+                  autoComplete="off"
+                />
+              )}
             />
             {errors.nombre && (
               <span className="text-[10px] text-red-500 font-bold uppercase">
@@ -122,15 +143,23 @@ export default function ClientModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            {/* NIT */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-muted-foreground uppercase">
                 NIT
               </label>
-              <input
-                {...register("nit")}
-                className={`w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
-                  errors.nit ? "border-red-500" : "border-input"
-                }`}
+              <Controller
+                name="nit"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    className={inputClass(!!errors.nit)}
+                    autoComplete="off"
+                  />
+                )}
               />
               {errors.nit && (
                 <span className="text-[10px] text-red-500 font-bold uppercase">
@@ -138,17 +167,26 @@ export default function ClientModal({
                 </span>
               )}
             </div>
+
+            {/* Teléfono */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-muted-foreground uppercase">
                 Teléfono
               </label>
-              <input
-                {...register("telefono")}
-                inputMode="numeric"
-                type="tel"
-                className={`w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
-                  errors.telefono ? "border-red-500" : "border-input"
-                }`}
+              <Controller
+                name="telefono"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    inputMode="numeric"
+                    type="tel"
+                    className={inputClass(!!errors.telefono)}
+                    autoComplete="off"
+                  />
+                )}
               />
               {errors.telefono && (
                 <span className="text-[10px] text-red-500 font-bold uppercase">
@@ -158,15 +196,23 @@ export default function ClientModal({
             </div>
           </div>
 
+          {/* Dirección */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-muted-foreground uppercase">
               Dirección
             </label>
-            <input
-              {...register("direccion")}
-              className={`w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
-                errors.direccion ? "border-red-500" : "border-input"
-              }`}
+            <Controller
+              name="direccion"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  value={field.value ?? ""}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  className={inputClass(!!errors.direccion)}
+                  autoComplete="off"
+                />
+              )}
             />
             {errors.direccion && (
               <span className="text-[10px] text-red-500 font-bold uppercase">
@@ -175,15 +221,25 @@ export default function ClientModal({
             )}
           </div>
 
+          {/* Email */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-muted-foreground uppercase">
               Email (Opcional)
             </label>
-            <input
-              {...register("email")}
-              className={`w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
-                errors.email ? "border-red-500" : "border-input"
-              }`}
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  value={field.value ?? ""}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  type="email"
+                  inputMode="email"
+                  className={inputClass(!!errors.email)}
+                  autoComplete="off"
+                />
+              )}
             />
             {errors.email && (
               <span className="text-[10px] text-red-500 font-bold uppercase">
