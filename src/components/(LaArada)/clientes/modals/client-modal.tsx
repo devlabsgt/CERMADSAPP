@@ -167,7 +167,6 @@ export default function ClientModal({
                 </span>
               )}
             </div>
-
             {/* Teléfono */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-muted-foreground uppercase">
