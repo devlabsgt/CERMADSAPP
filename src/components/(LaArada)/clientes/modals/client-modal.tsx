@@ -65,7 +65,7 @@ export default function ClientModal({
       nombre: data.nombre.trim(),
       nit: data.nit.trim(),
       direccion: data.direccion.trim(),
-      telefono: data.telefono.trim(),
+      telefono: data.telefono?.trim() ?? "",
       email: data.email?.trim() ?? "",
     };
 
@@ -170,7 +170,7 @@ export default function ClientModal({
             {/* Teléfono */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-muted-foreground uppercase">
-                Teléfono
+                Teléfono (Opcional)
               </label>
               <Controller
                 name="telefono"

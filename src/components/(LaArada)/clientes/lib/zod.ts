@@ -5,7 +5,11 @@ export const ClientSchema = z.object({
   nombre: z.string().min(3, "El nombre es requerido"),
   nit: z.string().min(1, "El NIT es requerido"),
   direccion: z.string().min(1, "La dirección es requerida"),
-  telefono: z.string().min(7, "El teléfono es requerido"),
+  telefono: z
+    .string()
+    .min(7, "El teléfono debe tener al menos 7 dígitos")
+    .optional()
+    .or(z.literal("")),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
 });
 
