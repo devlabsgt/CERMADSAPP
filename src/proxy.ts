@@ -76,7 +76,9 @@ if (user) {
 
       if (
         realRole === "user" &&
-        pathname.startsWith("/cermadsa/laarada/")
+        pathname.startsWith("/cermadsa/laarada/") &&
+        pathname !== "/cermadsa/laarada/ventas" &&
+        !pathname.startsWith("/cermadsa/laarada/ventas/")
       ) {
         const url = request.nextUrl.clone();
         url.pathname = "/not-found";
