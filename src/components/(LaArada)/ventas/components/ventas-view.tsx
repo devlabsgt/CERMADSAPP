@@ -3,6 +3,7 @@ import {
   Edit,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Search,
   BarChart2,
 } from "lucide-react";
@@ -10,6 +11,148 @@ import { useState, useMemo, useEffect } from "react";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import Swal from "sweetalert2";
 import StatsModal from "../modals/stats-modal";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+
+const MONTH_SHORT = [
+  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+];
+
+const shiftMonth = (year: number, month: number, delta: number) => {
+  let m = month + delta;
+  let y = year;
+  while (m < 1) {
+    m += 12;
+    y -= 1;
+  }
+  while (m > 12) {
+    m -= 12;
+    y += 1;
+  }
+  return { year: y, month: m };
+};
+
+function MonthYearPicker({
+  year,
+  month,
+  onChange,
+}: {
+  year: number;
+  month: number;
+  onChange: (year: number, month: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [viewYear, setViewYear] = useState(year);
+
+  useEffect(() => {
+    if (open) setViewYear(year);
+  }, [open, year]);
+
+  const monthLabel = new Date(year, month - 1, 1).toLocaleString("es-GT", {
+    month: "long",
+  });
+  const formatted = `${monthLabel.charAt(0).toUpperCase()}${monthLabel.slice(1)} ${year}`;
+
+  const goMonth = (delta: number) => {
+    const next = shiftMonth(year, month, delta);
+    onChange(next.year, next.month);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverAnchor asChild>
+        <div className="flex items-center border rounded-lg bg-background h-10 overflow-hidden shrink-0">
+          <button
+            type="button"
+            onClick={() => goMonth(-1)}
+            className="px-2.5 h-full hover:bg-muted border-r border-border transition-colors cursor-pointer"
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2 px-3 h-full font-bold text-xs hover:bg-muted transition-colors cursor-pointer min-w-[9.5rem] justify-center"
+            >
+              <Calendar className="size-4 text-muted-foreground shrink-0" />
+              <span className="capitalize whitespace-nowrap">{formatted}</span>
+              <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+            </button>
+          </PopoverTrigger>
+
+          <button
+            type="button"
+            onClick={() => goMonth(1)}
+            className="px-2.5 h-full hover:bg-muted border-l border-border transition-colors cursor-pointer"
+            aria-label="Mes siguiente"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+      </PopoverAnchor>
+
+      <PopoverContent
+        align="center"
+        sideOffset={6}
+        className="w-64 p-3 z-[200] !bg-background border border-border shadow-xl"
+      >
+        <div className="flex items-center justify-between mb-3 px-1">
+          <button
+            type="button"
+            onClick={() => setViewYear((y) => y - 1)}
+            className="p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
+            aria-label="Año anterior"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <span className="font-bold text-sm">{viewYear}</span>
+          <button
+            type="button"
+            onClick={() => setViewYear((y) => y + 1)}
+            className="p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
+            aria-label="Año siguiente"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5">
+          {MONTH_SHORT.map((label, index) => {
+            const monthValue = index + 1;
+            const isSelected = viewYear === year && month === monthValue;
+
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  onChange(viewYear, monthValue);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer",
+                  isSelected
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-muted text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const getGuatemalaDateParts = (dateInput?: string | Date) => {
   if (!dateInput || dateInput === "Sin Fecha")
@@ -200,6 +343,39 @@ export default function ListView({
       }));
   }, [paginatedItems]);
 
+  const handleMonthYearChange = (year: number, month: number) => {
+    setFiltroAnio(year);
+    setFiltroMes(month);
+    setFiltroSemana("Todas");
+  };
+
+  const estadoOptions = [
+    { v: "Pendiente", c: "amber" },
+    { v: "Entregado", c: "green" },
+    { v: "Anulado", c: "red" },
+  ].filter((item) => counts[item.v as keyof typeof counts] > 0);
+
+  const renderEstadoFilters = (className = "") => (
+    <div className={cn("flex flex-wrap gap-2 items-center", className)}>
+      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+        Estado:
+      </span>
+      {estadoOptions.map((item) => (
+        <button
+          key={item.v}
+          onClick={() => setFiltroEstado(filtroEstado === item.v ? "" : item.v)}
+          className={`flex items-center justify-center px-3 py-1 border-2 rounded-lg cursor-pointer transition-all text-xs font-bold bg-${item.c}-500/10 text-${item.c}-600 ${
+            filtroEstado === item.v
+              ? `border-${item.c}-500`
+              : "border-transparent hover:opacity-70"
+          }`}
+        >
+          {item.v} ({counts[item.v as keyof typeof counts]})
+        </button>
+      ))}
+    </div>
+  );
+
   if (isLoading && data.length === 0)
     return (
       <div className="p-8 text-center border rounded-xl bg-card italic">
@@ -212,49 +388,29 @@ export default function ListView({
       {/* Top filter bar - row 1 */}
       <div className="flex flex-col gap-3 p-4 bg-card border rounded-xl shadow-sm">
         <div className="flex flex-col xl:flex-row gap-3 items-start xl:items-center w-full">
-          {/* Search */}
-          <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full xl:w-72 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-10 shrink-0">
-            <Search className="size-4 text-muted-foreground shrink-0" />
-            <input
-              type="text"
-              placeholder="Cliente, recibo o NIT"
-              className="bg-transparent outline-none text-xs w-full font-medium"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center w-full xl:flex-1 min-w-0">
+            <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 w-full lg:w-72 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all h-10 shrink-0">
+              <Search className="size-4 text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                placeholder="Cliente, recibo o NIT"
+                className="bg-transparent outline-none text-xs w-full font-medium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {renderEstadoFilters("hidden xl:flex")}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto xl:flex-1">
-            {/* Fechas en 1 linea para telefono */}
-            <div className="flex flex-row gap-2 w-full sm:w-auto">
-              {/* Año */}
-              <select
-                value={filtroAnio}
-                onChange={(e) => setFiltroAnio(Number(e.target.value))}
-                className="flex-1 sm:flex-none sm:w-auto h-10 px-2 sm:px-3 border rounded-lg bg-background font-bold text-xs outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-              >
-                {[2025, 2026, 2027].map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto shrink-0 sm:items-center">
+            <div className="flex flex-row gap-2 w-full sm:w-auto items-center">
+              <MonthYearPicker
+                year={filtroAnio}
+                month={filtroMes}
+                onChange={handleMonthYearChange}
+              />
 
-              {/* Mes */}
-              <select
-                value={filtroMes}
-                onChange={(e) => {
-                  setFiltroMes(Number(e.target.value));
-                  setFiltroSemana("Todas");
-                }}
-                className="flex-1 sm:flex-none sm:w-auto h-10 px-2 sm:px-3 border rounded-lg bg-background font-bold text-[10px] sm:text-xs capitalize outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-              >
-                {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {new Date(2000, i, 1).toLocaleString("es-GT", { month: "short" })}
-                  </option>
-                ))}
-              </select>
-
-              {/* Semana */}
               <select
                 value={filtroSemana}
                 onChange={(e) =>
@@ -266,15 +422,16 @@ export default function ListView({
               >
                 <option value="Todas">Semana</option>
                 {semanasDelMes.map((s) => (
-                  <option key={s.week} value={s.week}>{s.label}</option>
+                  <option key={s.week} value={s.week}>
+                    {s.label}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Stats Button */}
             <button
               onClick={() => setShowStats(true)}
-              className="w-full sm:w-auto sm:ml-auto h-10 flex items-center justify-center gap-2 px-4 border rounded-lg bg-orange-500/10 text-orange-600 font-bold text-xs hover:bg-orange-500/20 transition-all cursor-pointer whitespace-nowrap border-orange-500/30 shrink-0"
+              className="w-full sm:w-auto h-10 flex items-center justify-center gap-2 px-4 border rounded-lg bg-orange-500/10 text-orange-600 font-bold text-xs hover:bg-orange-500/20 transition-all cursor-pointer whitespace-nowrap border-orange-500/30 shrink-0"
             >
               <BarChart2 className="size-4" />
               Ventas por Vendedor
@@ -282,29 +439,7 @@ export default function ListView({
           </div>
         </div>
 
-        {/* Filter by status - row 2 */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Estado:</span>
-          {[
-            { v: "Pendiente", c: "amber" },
-            { v: "Entregado", c: "green" },
-            { v: "Anulado", c: "red" },
-          ]
-            .filter((item) => counts[item.v as keyof typeof counts] > 0)
-            .map((item) => (
-              <button
-                key={item.v}
-                onClick={() => setFiltroEstado(filtroEstado === item.v ? "" : item.v)}
-                className={`flex items-center justify-center px-3 py-1 border-2 rounded-lg cursor-pointer transition-all text-xs font-bold bg-${item.c}-500/10 text-${item.c}-600 ${
-                  filtroEstado === item.v
-                    ? `border-${item.c}-500`
-                    : "border-transparent hover:opacity-70"
-                }`}
-              >
-                {item.v} ({counts[item.v as keyof typeof counts]})
-              </button>
-            ))}
-        </div>
+        {renderEstadoFilters("xl:hidden")}
       </div>
 
       {/* Results */}
@@ -366,26 +501,28 @@ export default function ListView({
                       }
                     }
 
+                    const handleEditAreaClick = () => {
+                      if (tieneFacturaCertificada && !isAnulada) {
+                        Swal.fire({
+                          title: "⚠️ Venta Bloqueada",
+                          text: "Esta venta ya tiene una factura electrónica generada. Para poder modificarla, primero debe anular la factura correspondiente.",
+                          icon: "info",
+                          confirmButtonColor: "#10b981",
+                        });
+                        return;
+                      }
+                      onEditClick(venta);
+                    };
+
                     return (
                       <div
                         key={venta.id}
                         className={`bg-card border rounded-xl flex flex-col md:flex-row overflow-hidden relative shadow-sm transition-all ${borderColor}`}
                       >
                         <div
-                          onClick={() => {
-                            if (tieneFacturaCertificada) {
-                              Swal.fire({
-                                title: "⚠️ Venta Bloqueada",
-                                text: "Esta venta ya tiene una factura electrónica generada. Para poder modificarla, primero debe anular la factura correspondiente.",
-                                icon: "info",
-                                confirmButtonColor: "#10b981",
-                              });
-                              return;
-                            }
-                            onEditClick(venta);
-                          }}
+                          onClick={handleEditAreaClick}
                           className={`grow flex flex-col md:flex-row transition-all p-4 rounded-t-xl md:rounded-l-xl md:rounded-tr-none cursor-pointer ${
-                            tieneFacturaCertificada
+                            tieneFacturaCertificada && !isAnulada
                               ? "opacity-90"
                               : "hover:ring-inset hover:ring-2 hover:ring-primary/40"
                           }`}
@@ -469,7 +606,7 @@ export default function ListView({
                           </div>
                         </div>
                         <div className="flex flex-row items-stretch justify-end border-t md:border-t-0 md:border-l border-border bg-card">
-                          {estadoNormal === "entregado" && (
+                          {estadoNormal !== "anulado" && (
                             <button
                               id={`print-btn-${venta.id}`}
                               onClick={(e) => {
@@ -495,7 +632,7 @@ export default function ListView({
                             }}
                             disabled={estadoNormal !== "pendiente"}
                             className={`${
-                              estadoNormal === "entregado" ? "w-1/2" : "w-full"
+                              estadoNormal !== "anulado" ? "w-1/2" : "w-full"
                             } md:w-40 shrink-0 py-5 md:py-0 flex items-center justify-center gap-1.5 text-xs uppercase font-bold transition-all ${
                               estadoNormal === "pendiente"
                                 ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer"

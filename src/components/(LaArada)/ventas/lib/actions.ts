@@ -174,7 +174,7 @@ export async function createVenta(data: VentaFormValues) {
   }
 
   revalidatePath("/cermadsa/laarada/pedidos");
-  return { success: true };
+  return { success: true, ventaId: venta.id };
 }
 
 export async function updateVenta(id: string, data: VentaFormValues) {

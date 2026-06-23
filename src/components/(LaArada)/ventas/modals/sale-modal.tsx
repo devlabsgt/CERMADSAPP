@@ -29,6 +29,7 @@ interface SaleModalProps {
   onClose: () => void;
   ventaToEdit?: any;
   effectiveRole?: string;
+  onCreated?: (ventaId: string) => void;
 }
 
 export default function SaleModal({
@@ -36,6 +37,7 @@ export default function SaleModal({
   onClose,
   ventaToEdit,
   effectiveRole,
+  onCreated,
 }: SaleModalProps) {
   const queryClient = useQueryClient();
   const { data: catalogos, refetch } = useCatalogos();
@@ -164,6 +166,10 @@ export default function SaleModal({
       reset();
       setClientSearch("");
       onClose();
+      const nuevaVentaId = (res as { ventaId?: string }).ventaId;
+      if (!ventaToEdit && nuevaVentaId && onCreated) {
+        onCreated(nuevaVentaId);
+      }
     }
   };
 

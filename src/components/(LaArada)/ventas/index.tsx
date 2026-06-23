@@ -225,6 +225,7 @@ export default function ListadoVentas() {
           onClose={() => setIsSaleModalOpen(false)}
           ventaToEdit={ventaToEdit}
           effectiveRole={effectiveRole}
+          onCreated={(ventaId) => setSelectedVentaId(ventaId)}
         />
       )}
 
