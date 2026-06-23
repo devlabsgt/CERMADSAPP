@@ -21,6 +21,31 @@ import { getStockStats } from "./productos/lib/actions";
 import { getPendingOrdersCount, getVentas } from "./ventas/lib/actions";
 import { useUser } from "@/components/(base)/providers/UserProvider";
 
+import { TypingAnimation } from "@/components/ui/typing-animation";
+
+const WELCOME_PHRASES = [
+  "La Arada crece contigo. Administra tu jornada con claridad y rapidez.",
+  "Hoy es un buen día para hacer las cosas bien, paso a paso.",
+  "La disciplina de hoy construye los resultados de mañana.",
+  "Empieza con energía: pequeños avances suman grandes logros.",
+  "Tu enfoque de esta mañana define el ritmo de todo el día.",
+  "Hazlo con intención. Cada acción cuenta más de lo que parece.",
+  "La constancia vence a la prisa. Avanza con calma y decisión.",
+  "Tienes el control de tu día. Prioriza lo importante primero.",
+  "Un día organizado es un día ganado. Tú marcas el ritmo.",
+  "La excelencia no es un acto, es un hábito diario.",
+  "Confía en tu criterio y ejecuta con determinación.",
+  "Menos distracciones, más resultados. Este es tu momento.",
+  "La motivación te arranca; la disciplina te lleva hasta el final.",
+  "Hoy puedes dejar todo un poco mejor de como lo encontraste.",
+  "Actúa con propósito y verás cómo todo encaja.",
+  "Tu mejor herramienta hoy es la actitud con la que empiezas.",
+  "No esperes el momento perfecto. Haz que este momento cuente.",
+  "Construyendo juntos el futuro, con trabajo y visión clara.",
+  "Cada jornada es una oportunidad para superar lo de ayer.",
+  "Respira, enfócate y avanza. Lo demás se alinea contigo.",
+];
+
 export default function DashboardLaArada() {
   const router = useRouter();
   const user = useUser();
@@ -36,6 +61,10 @@ export default function DashboardLaArada() {
     stockBajo: 0,
   });
   const [loading, setLoading] = useState(true);
+  const welcomePhrase = useMemo(
+    () => WELCOME_PHRASES[Math.floor(Math.random() * WELCOME_PHRASES.length)],
+    [],
+  );
 
   useEffect(() => {
     if (realRole) setEffectiveRole(realRole);
@@ -283,18 +312,22 @@ export default function DashboardLaArada() {
           </div>
 
           {/* LADO DERECHO: SALUDO Y ANIMACIÓN */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between flex-1 relative z-10 w-full xl:pl-8 xl:border-l xl:border-orange-500/10">
-            <div className="flex flex-col gap-1 mt-1 md:mt-0">
-              <h2 className="text-xl md:text-2xl font-black tracking-tighter text-foreground leading-tight">
+          <div className="flex flex-col xl:flex-row xl:items-center flex-1 relative z-10 w-full min-w-0 xl:pl-10 xl:gap-10 xl:border-l xl:border-orange-500/10">
+            <div className="flex flex-col gap-2 flex-1 min-w-0 mt-1 md:mt-0 pr-14 md:pr-0">
+              <h2 className="text-3xl md:text-2xl xl:text-4xl font-black tracking-tighter text-foreground leading-tight">
                 ¡Hola de nuevo, <span className="text-orange-600 dark:text-orange-500">{metadata.nombre?.split(' ')[0] || 'Usuario'}</span>!
               </h2>
-              <p className="text-xs md:text-sm text-muted-foreground font-medium max-w-lg pr-12 md:pr-0 leading-tight">
-                Es un gusto verte hoy. Gestiona tus operaciones desde tu panel de control.
+              <p
+                className="text-sm md:text-base xl:text-2xl text-orange-600 dark:text-orange-500 font-medium xl:font-semibold w-full xl:max-w-none leading-relaxed xl:leading-snug min-h-10 xl:min-h-14"
+                aria-live="polite"
+              >
+                <span className="sr-only">{welcomePhrase}</span>
+                <TypingAnimation duration={32}>{welcomePhrase}</TypingAnimation>
               </p>
             </div>
 
             {/* ELEMENTO VISUAL */}
-            <div className="absolute top-0 right-0 md:static flex items-center justify-center z-10 scale-[0.6] md:scale-75 origin-top-right md:pr-2">
+            <div className="absolute top-0 right-0 xl:relative xl:top-auto xl:right-auto flex items-center justify-center z-10 scale-[0.6] md:scale-75 xl:scale-100 shrink-0">
               <div className="relative flex items-center gap-2">
                 <motion.div
                   animate={{ y: [0, -5, 0] }}
@@ -323,7 +356,7 @@ export default function DashboardLaArada() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[120px] md:auto-rows-[200px]"
+          className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[150px] md:auto-rows-[200px]"
         >
               {visibleMenuItems.map((item) => (
                 <motion.div
@@ -372,7 +405,7 @@ export default function DashboardLaArada() {
                   <div className="relative z-10 shrink-0">
                     <div
                       className={cn(
-                        "p-2 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
+                        "p-3 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm",
                         item.id === "ventas" && !canViewContabilidad && "md:p-5",
                       )}
                     >
@@ -380,20 +413,20 @@ export default function DashboardLaArada() {
                         iconKey={item.iconKey}
                         target={`#card-${item.id}`}
                         className={cn(
-                          "w-8 h-8 md:w-20 md:h-20",
+                          "w-14 h-14 md:w-20 md:h-20",
                           item.id === "ventas" &&
                             !canViewContabilidad &&
-                            "md:w-24 md:h-24",
+                            "w-16 h-16 md:w-24 md:h-24",
                         )}
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col space-y-0 md:space-y-1 relative z-10">
-                    <h3 className="text-base md:text-xl font-bold tracking-tight text-foreground transition-colors">
+                  <div className="flex flex-col gap-0.5 md:gap-1 xl:gap-2 relative z-10 flex-1 min-w-0 pr-2">
+                    <h3 className="text-2xl md:text-xl xl:text-3xl font-bold tracking-tight text-foreground transition-colors leading-tight">
                       {item.label}
                     </h3>
-                    <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-1 font-medium italic">
+                    <p className="text-base md:text-sm xl:text-lg text-muted-foreground line-clamp-2 xl:line-clamp-none font-medium italic">
                       {item.desc}
                     </p>
                   </div>
@@ -411,19 +444,19 @@ export default function DashboardLaArada() {
                 >
                   <Link href="/cermadsa/laarada/estadisticas" className="w-full h-full flex flex-row items-center justify-start gap-4 md:gap-6 p-4 md:p-6 outline-none relative z-10">
                     <div className="relative z-10 shrink-0">
-                      <div className="p-2 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm">
+                      <div className="p-3 md:p-3 bg-gray-50 rounded-xl md:rounded-2xl border border-border/50 shadow-sm">
                         <AnimatedIcon
                           iconKey="qgwuoxgw"
                           target="#stats-widget"
-                          className="w-8 h-8 md:w-20 md:h-20"
+                          className="w-14 h-14 md:w-20 md:h-20"
                         />
                       </div>
                     </div>
-                    <div className="flex flex-col space-y-0 md:space-y-1 relative z-10">
-                      <h3 className="text-base md:text-xl font-bold tracking-tight text-foreground transition-colors">
+                    <div className="flex flex-col gap-0.5 md:gap-1 xl:gap-2 relative z-10 flex-1 min-w-0 pr-2">
+                      <h3 className="text-2xl md:text-xl xl:text-3xl font-bold tracking-tight text-foreground transition-colors leading-tight">
                         Estadísticas
                       </h3>
-                      <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-1 font-medium italic">
+                      <p className="text-base md:text-sm xl:text-lg text-muted-foreground line-clamp-2 xl:line-clamp-none font-medium italic">
                         Ingresos y ventas del mes.
                       </p>
                     </div>
