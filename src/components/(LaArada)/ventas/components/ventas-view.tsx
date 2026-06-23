@@ -20,8 +20,18 @@ import {
 import { cn } from "@/lib/utils";
 
 const MONTH_SHORT = [
-  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
 ];
 
 const shiftMonth = (year: number, month: number, delta: number) => {
@@ -259,7 +269,9 @@ export default function ListView({
         const clienteNombre = (order.ven_clientes?.nombre || "").toLowerCase();
         const clienteNit = (order.ven_clientes?.nit || "").toLowerCase();
         const numRecibo = String(order.numero_recibo || "").toLowerCase();
-        const shortId = String(order.id || "").substring(0, 6).toLowerCase();
+        const shortId = String(order.id || "")
+          .substring(0, 6)
+          .toLowerCase();
 
         matchSearch =
           clienteNombre.includes(term) ||
@@ -393,7 +405,7 @@ export default function ListView({
               <Search className="size-4 text-muted-foreground shrink-0" />
               <input
                 type="text"
-                placeholder="Cliente, recibo o NIT"
+                placeholder="Buscar por Cliente, recibo o NIT"
                 className="bg-transparent outline-none text-xs w-full font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -415,7 +427,9 @@ export default function ListView({
                 value={filtroSemana}
                 onChange={(e) =>
                   setFiltroSemana(
-                    e.target.value === "Todas" ? "Todas" : Number(e.target.value),
+                    e.target.value === "Todas"
+                      ? "Todas"
+                      : Number(e.target.value),
                   )
                 }
                 className="flex-1 sm:flex-none sm:w-auto h-10 px-2 sm:px-3 border rounded-lg bg-background font-bold text-[10px] sm:text-xs outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer truncate"
@@ -481,7 +495,7 @@ export default function ListView({
                       .trim()
                       .toLowerCase();
                     const tieneFacturaCertificada = venta.dte_documentos?.some(
-                      (d: any) => d.estado === "certificado"
+                      (d: any) => d.estado === "certificado",
                     );
                     const isEntregada = estadoNormal === "entregado";
                     const isAnulada = estadoNormal === "anulado";
@@ -493,10 +507,12 @@ export default function ListView({
                       textColor = "text-red-600 dark:text-red-500";
                     } else if (isEntregada) {
                       if (tieneFacturaCertificada) {
-                        borderColor = "border-sky-400/50 ring-1 ring-sky-400/10";
+                        borderColor =
+                          "border-sky-400/50 ring-1 ring-sky-400/10";
                         textColor = "text-sky-600 dark:text-sky-500";
                       } else {
-                        borderColor = "border-emerald-400/50 ring-1 ring-emerald-400/10";
+                        borderColor =
+                          "border-emerald-400/50 ring-1 ring-emerald-400/10";
                         textColor = "text-emerald-600 dark:text-emerald-500";
                       }
                     }
@@ -528,8 +544,13 @@ export default function ListView({
                           }`}
                         >
                           <div className="flex pr-5 flex-col gap-1 w-full md:w-112.5 shrink-0">
-                            <span className={`font-mono font-bold ${textColor} text-sm`}>
-                              Venta #{venta.id ? `${venta.id.substring(0, 3).toUpperCase()}-${venta.id.substring(3, 6).toUpperCase()}` : '---'}
+                            <span
+                              className={`font-mono font-bold ${textColor} text-sm`}
+                            >
+                              Venta #
+                              {venta.id
+                                ? `${venta.id.substring(0, 3).toUpperCase()}-${venta.id.substring(3, 6).toUpperCase()}`
+                                : "---"}
                               <span className="px-2 ml-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-muted text-muted-foreground">
                                 {venta.tipo_venta}
                               </span>
@@ -600,7 +621,17 @@ export default function ListView({
                                 {venta.vendedor?.nombre || "-"}
                               </span>
                               <span className="text-[10px] italic text-muted-foreground mt-0.5">
-                                {venta.created_at ? new Date(venta.created_at).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--"} hrs
+                                {venta.created_at
+                                  ? new Date(
+                                      venta.created_at,
+                                    ).toLocaleTimeString("es-GT", {
+                                      timeZone: "America/Guatemala",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: false,
+                                    })
+                                  : "--:--"}{" "}
+                                hrs
                               </span>
                             </div>
                           </div>
@@ -637,9 +668,9 @@ export default function ListView({
                               estadoNormal === "pendiente"
                                 ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer"
                                 : estadoNormal === "entregado"
-                                  ? (tieneFacturaCertificada 
-                                      ? "bg-sky-500/10 text-sky-600 opacity-90 cursor-default"
-                                      : "bg-green-500/10 text-green-600 opacity-90 cursor-default")
+                                  ? tieneFacturaCertificada
+                                    ? "bg-sky-500/10 text-sky-600 opacity-90 cursor-default"
+                                    : "bg-green-500/10 text-green-600 opacity-90 cursor-default"
                                   : "bg-red-500/10 text-red-600 opacity-80 cursor-default"
                             }`}
                           >
