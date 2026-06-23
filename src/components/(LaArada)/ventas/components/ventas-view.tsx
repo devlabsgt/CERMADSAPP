@@ -367,26 +367,51 @@ export default function ListView({
     { v: "Anulado", c: "red" },
   ].filter((item) => counts[item.v as keyof typeof counts] > 0);
 
-  const renderEstadoFilters = (className = "") => (
-    <div className={cn("flex flex-wrap gap-2 items-center", className)}>
-      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-        Estado:
-      </span>
-      {estadoOptions.map((item) => (
-        <button
-          key={item.v}
-          onClick={() => setFiltroEstado(filtroEstado === item.v ? "" : item.v)}
-          className={`flex items-center justify-center px-3 py-1 border-2 rounded-lg cursor-pointer transition-all text-xs font-bold bg-${item.c}-500/10 text-${item.c}-600 ${
-            filtroEstado === item.v
-              ? `border-${item.c}-500`
-              : "border-transparent hover:opacity-70"
-          }`}
-        >
-          {item.v} ({counts[item.v as keyof typeof counts]})
-        </button>
-      ))}
-    </div>
-  );
+  const renderEstadoFilters = (
+    className = "",
+    layout: "inline" | "stacked" = "inline",
+  ) => {
+    const count = estadoOptions.length;
+    const gridCols = count === 3 ? "grid-cols-3" : "grid-cols-2";
+
+    const buttons = estadoOptions.map((item) => (
+      <button
+        key={item.v}
+        onClick={() => setFiltroEstado(filtroEstado === item.v ? "" : item.v)}
+        className={`flex items-center justify-center border-2 rounded-lg cursor-pointer transition-all font-bold bg-${item.c}-500/10 text-${item.c}-600 ${
+          layout === "stacked"
+            ? "w-full px-2 py-2 text-[10px] sm:text-xs"
+            : "px-3 py-1 text-xs"
+        } ${
+          filtroEstado === item.v
+            ? `border-${item.c}-500`
+            : "border-transparent hover:opacity-70"
+        }`}
+      >
+        {item.v} ({counts[item.v as keyof typeof counts]})
+      </button>
+    ));
+
+    if (layout === "stacked") {
+      return (
+        <div className={cn("w-full flex flex-col gap-2", className)}>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Estado:
+          </span>
+          <div className={cn("grid w-full gap-2", gridCols)}>{buttons}</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn("flex flex-wrap gap-2 items-center", className)}>
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+          Estado:
+        </span>
+        {buttons}
+      </div>
+    );
+  };
 
   if (isLoading && data.length === 0)
     return (
@@ -453,7 +478,7 @@ export default function ListView({
           </div>
         </div>
 
-        {renderEstadoFilters("xl:hidden")}
+        {renderEstadoFilters("xl:hidden", "stacked")}
       </div>
 
       {/* Results */}

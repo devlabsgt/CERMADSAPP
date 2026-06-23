@@ -17,7 +17,6 @@ import {
   Package,
   Ban,
 } from "lucide-react";
-import { MagicCard } from "@/components/ui/magic-card";
 import ClientModal from "../../clientes/modals/client-modal";
 import AddProductModal from "./add-product-modal";
 import { cn } from "@/lib/utils";
@@ -93,6 +92,28 @@ export default function SaleModal({
     if (effectiveRole === "super") return false;
     return estado === "entregado";
   }, [ventaToEdit, effectiveRole]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const scrollY = window.scrollY;
+    const prevOverflow = document.body.style.overflow;
+    const prevPosition = document.body.style.position;
+    const prevTop = document.body.style.top;
+    const prevWidth = document.body.style.width;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top = prevTop;
+      document.body.style.width = prevWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (ventaToEdit) {
@@ -216,8 +237,8 @@ export default function SaleModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-foreground">
-        <MagicCard className="w-full max-w-4xl p-0 shadow-2xl rounded-xl max-h-[90vh] flex flex-col overflow-hidden bg-background">
+      <div className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4 text-foreground">
+        <div className="flex h-full w-full min-h-0 flex-col overflow-hidden rounded-none bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:rounded-xl">
           <Header
             title={
               ventaToEdit
@@ -230,7 +251,7 @@ export default function SaleModal({
             estado={ventaToEdit?.estado}
           />
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 [-webkit-overflow-scrolling:touch]">
             <form
               id="venta-form"
               onSubmit={handleSubmit(onSubmit, (err) =>
@@ -387,50 +408,100 @@ export default function SaleModal({
                 </div>
 
                 <div className="border rounded-xl overflow-hidden shadow-sm bg-card">
-                  <div className="grid grid-cols-12 bg-muted/50 text-[10px] font-bold text-muted-foreground uppercase py-2 px-4 border-b">
+                  <div className="hidden md:grid grid-cols-12 bg-muted/50 text-[10px] font-bold text-muted-foreground uppercase py-2 px-4 border-b">
                     <div className="col-span-5">Producto</div>
                     <div className="col-span-2 text-center">Cant.</div>
                     <div className="col-span-2 text-right">Precio</div>
                     <div className="col-span-2 text-right">Subtotal</div>
                     <div className="col-span-1"></div>
                   </div>
-                  <div className="divide-y max-h-62.5 overflow-y-auto">
+                  <div className="divide-y md:max-h-62.5 md:overflow-y-auto">
                     {fields.length === 0 ? (
                       <div className="py-12 text-center text-muted-foreground text-sm opacity-50 flex flex-col items-center gap-2">
                         <Package className="size-8" /> Sin productos
                       </div>
                     ) : (
                       fields.map((field, index) => (
-                        <div
-                          key={field.id}
-                          className="grid grid-cols-12 items-center py-3 px-4 hover:bg-muted/10 transition-colors text-sm"
-                        >
-                          <div className="col-span-5 font-medium truncate pr-2">
-                            {watch(`detalles.${index}.nombre_producto`) ||
-                              "Producto"}
+                        <div key={field.id}>
+                          <div className="md:hidden p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="font-medium text-sm leading-snug">
+                                {watch(`detalles.${index}.nombre_producto`) ||
+                                  "Producto"}
+                              </p>
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  className="text-muted-foreground hover:text-red-500 p-1 cursor-pointer shrink-0"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 text-sm">
+                              <div>
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
+                                  Cant.
+                                </span>
+                                <span className="font-mono bg-muted/30 rounded px-2 py-1 inline-block">
+                                  {watch(`detalles.${index}.cantidad`)}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
+                                  Precio
+                                </span>
+                                <span className="text-muted-foreground font-mono">
+                                  Q
+                                  {watch(
+                                    `detalles.${index}.precio_unitario`,
+                                  ).toFixed(2)}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">
+                                  Subtotal
+                                </span>
+                                <span className="font-bold font-mono">
+                                  Q
+                                  {watch(`detalles.${index}.subtotal`).toFixed(
+                                    2,
+                                  )}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="col-span-2 text-center font-mono bg-muted/30 rounded py-0.5 mx-2">
-                            {watch(`detalles.${index}.cantidad`)}
-                          </div>
-                          <div className="col-span-2 text-right text-muted-foreground">
-                            Q
-                            {watch(`detalles.${index}.precio_unitario`).toFixed(
-                              2,
-                            )}
-                          </div>
-                          <div className="col-span-2 text-right font-bold">
-                            Q{watch(`detalles.${index}.subtotal`).toFixed(2)}
-                          </div>
-                          <div className="col-span-1 text-right">
-                            {!isReadOnly && (
-                              <button
-                                type="button"
-                                onClick={() => remove(index)}
-                                className="text-muted-foreground hover:text-red-500 p-1 cursor-pointer"
-                              >
-                                <Trash2 className="size-4" />
-                              </button>
-                            )}
+
+                          <div className="hidden md:grid grid-cols-12 items-center py-3 px-4 hover:bg-muted/10 transition-colors text-sm">
+                            <div className="col-span-5 font-medium truncate pr-2">
+                              {watch(`detalles.${index}.nombre_producto`) ||
+                                "Producto"}
+                            </div>
+                            <div className="col-span-2 text-center font-mono bg-muted/30 rounded py-0.5 mx-2">
+                              {watch(`detalles.${index}.cantidad`)}
+                            </div>
+                            <div className="col-span-2 text-right text-muted-foreground whitespace-nowrap">
+                              Q
+                              {watch(
+                                `detalles.${index}.precio_unitario`,
+                              ).toFixed(2)}
+                            </div>
+                            <div className="col-span-2 text-right font-bold whitespace-nowrap">
+                              Q
+                              {watch(`detalles.${index}.subtotal`).toFixed(2)}
+                            </div>
+                            <div className="col-span-1 text-right">
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  className="text-muted-foreground hover:text-red-500 p-1 cursor-pointer"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))
@@ -449,7 +520,7 @@ export default function SaleModal({
             </form>
           </div>
 
-          <div className="p-4 border-t bg-muted/30 flex justify-between items-center gap-3">
+          <div className="shrink-0 p-4 border-t bg-muted/30 flex justify-between items-center gap-3">
             <div>
               {ventaToEdit && !isReadOnly && !isAnulado && (
                 <button
@@ -482,7 +553,7 @@ export default function SaleModal({
               </button>
             )}
           </div>
-        </MagicCard>
+        </div>
       </div>
 
       <ClientModal
@@ -524,7 +595,7 @@ function Header({
           : "bg-muted";
 
   return (
-    <div className="px-6 py-4 border-b flex justify-between items-center bg-muted/30">
+    <div className="shrink-0 px-6 py-4 border-b flex justify-between items-center bg-muted/30">
       <div className="flex items-center gap-3">
         <div className="bg-orange-500/10 p-2 rounded-lg">
           <ShoppingCart className="size-6 text-orange-500" />

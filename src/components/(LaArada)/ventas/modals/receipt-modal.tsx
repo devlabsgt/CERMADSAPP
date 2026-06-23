@@ -19,7 +19,6 @@ import { useCertificar, useAnular } from "@/hooks/useInfile";
 import type { INFILEResponse } from "@/types/infile";
 import { getEmisorConfig, buildXMLFactura } from "@/lib/infile";
 import { useUser } from "@/components/(base)/providers/UserProvider";
-import { MagicCard } from "@/components/ui/magic-card";
 import Swal from "sweetalert2";
 
 interface ReceiptModalProps {
@@ -155,6 +154,28 @@ export default function ReceiptModal({
       setVenta(null);
     }
   }, [isOpen, ventaId, reset]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const scrollY = window.scrollY;
+    const prevOverflow = document.body.style.overflow;
+    const prevPosition = document.body.style.position;
+    const prevTop = document.body.style.top;
+    const prevWidth = document.body.style.width;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top = prevTop;
+      document.body.style.width = prevWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isOpen]);
 
   const handlePrint = () => {
     const content = document.getElementById("print-container")?.innerHTML;
@@ -458,9 +479,9 @@ export default function ReceiptModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-0 sm:p-4 text-foreground">
-        <MagicCard className="w-full max-w-3xl p-0 shadow-2xl rounded-xl max-h-[98vh] sm:max-h-[95vh] flex flex-col overflow-hidden bg-background">
-          <div className="flex flex-col gap-3 p-4 border-b bg-muted/50 shrink-0">
+      <div className="fixed inset-0 z-[9999] flex flex-col bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4 text-foreground">
+        <div className="flex h-full w-full min-h-0 flex-col overflow-hidden rounded-none bg-background shadow-2xl sm:h-auto sm:max-h-[95vh] sm:max-w-3xl sm:rounded-xl">
+          <div className="shrink-0 flex flex-col gap-3 p-4 border-b bg-muted/50">
             <div className="flex justify-between items-center">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <FileText className="size-5" /> Generar Recibo o FEL
@@ -509,8 +530,9 @@ export default function ReceiptModal({
             </div>
           </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
           {loading ? (
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 animate-pulse">
+            <div className="p-8 space-y-6 animate-pulse">
               <div className="h-16 w-48 bg-gray-200 rounded-lg mx-auto mb-6" />
               <div className="space-y-3">
                 <div className="h-4 w-full bg-gray-100 rounded" />
@@ -1933,8 +1955,9 @@ export default function ReceiptModal({
               )}
             </div>
           )}
+          </div>
 
-          <div className="p-4 border-t bg-muted/50 flex justify-end shrink-0">
+          <div className="shrink-0 p-4 border-t bg-muted/50 flex justify-end">
             <button
               onClick={onClose}
               className="px-6 py-2 bg-muted text-foreground rounded-lg font-bold text-sm hover:bg-muted/80 transition cursor-pointer border"
@@ -1942,7 +1965,7 @@ export default function ReceiptModal({
               Cerrar
             </button>
           </div>
-        </MagicCard>
+        </div>
       </div>
     </>
   );
