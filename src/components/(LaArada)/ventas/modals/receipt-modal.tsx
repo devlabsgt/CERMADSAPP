@@ -34,6 +34,8 @@ type Tab = "recibo" | "factura";
 const RECEIPT_PAGE_W_IN = 9.5;
 const RECEIPT_PAGE_H_IN = 11;
 const RECEIPT_DOC_W_PX = Math.round(RECEIPT_PAGE_W_IN * 96);
+/** Compensa offset izquierdo del driver Epson en la impresión física (mm → in). */
+const RECEIPT_PRINT_LEFT_OFFSET_IN = -0.12;
 
 const RECEIPT_PRINT_STYLES = `
   @page {
@@ -41,7 +43,34 @@ const RECEIPT_PRINT_STYLES = `
     size: ${RECEIPT_PAGE_W_IN}in ${RECEIPT_PAGE_H_IN}in;
   }
   @media print {
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: ${RECEIPT_PAGE_W_IN}in !important;
+      max-width: ${RECEIPT_PAGE_W_IN}in !important;
+      position: relative;
+    }
+    body {
+      margin-left: ${RECEIPT_PRINT_LEFT_OFFSET_IN}in !important;
+    }
+    body > div {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0.1in 0 0 0 !important;
+      border: none !important;
+    }
+    table td,
+    table th {
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
   }
   * { box-sizing: border-box; }
   body {
@@ -49,7 +78,7 @@ const RECEIPT_PRINT_STYLES = `
     font-size: 11px;
     width: ${RECEIPT_PAGE_W_IN}in;
     margin: 0;
-    padding: 0.15in 0.2in 0 0.2in;
+    padding: 0;
     color: black;
     line-height: 1.3;
     background: white;
