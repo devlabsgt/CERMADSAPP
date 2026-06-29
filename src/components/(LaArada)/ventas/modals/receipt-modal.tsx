@@ -30,22 +30,44 @@ interface ReceiptModalProps {
 
 type Tab = "recibo" | "factura";
 
-/** Epson LX-350 — forma continua 9.5 × 11 in (24.13 × 27.94 cm) */
-const RECEIPT_PAGE_W_IN = 9.5;
-const RECEIPT_PAGE_H_IN = 11;
-const RECEIPT_DOC_W_PX = Math.round(RECEIPT_PAGE_W_IN * 96);
+/** Epson LX-350 — forma continua 9.5 × 11 in, cargada en horizontal (landscape). */
+const RECEIPT_CONTENT_W_IN = 9.5;
+const RECEIPT_CONTENT_H_IN = 11;
+/** Área física en el platen: 11 in de ancho × 9.5 in de alto */
+const RECEIPT_PAGE_W_IN = RECEIPT_CONTENT_H_IN;
+const RECEIPT_PAGE_H_IN = RECEIPT_CONTENT_W_IN;
+const RECEIPT_DOC_W_PX = Math.round(RECEIPT_CONTENT_W_IN * 96);
 
 const RECEIPT_PRINT_STYLES = `
-  @page { margin: 0; size: ${RECEIPT_PAGE_W_IN}in ${RECEIPT_PAGE_H_IN}in; }
+  @page {
+    margin: 0;
+    size: ${RECEIPT_PAGE_W_IN}in ${RECEIPT_PAGE_H_IN}in landscape;
+  }
   @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html {
+      width: ${RECEIPT_PAGE_W_IN}in;
+      height: ${RECEIPT_PAGE_H_IN}in;
+      overflow: hidden;
+    }
+    body {
+      width: ${RECEIPT_CONTENT_W_IN}in;
+      min-height: ${RECEIPT_CONTENT_H_IN}in;
+      margin: 0;
+      padding: 0.15in 0.2in 0 0.2in;
+      position: absolute;
+      top: 0;
+      left: ${RECEIPT_CONTENT_W_IN}in;
+      transform: rotate(90deg);
+      transform-origin: top left;
+    }
   }
   * { box-sizing: border-box; }
   body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11px;
-    width: ${RECEIPT_PAGE_W_IN}in;
-    min-height: ${RECEIPT_PAGE_H_IN}in;
+    width: ${RECEIPT_CONTENT_W_IN}in;
+    min-height: ${RECEIPT_CONTENT_H_IN}in;
     margin: 0 auto;
     padding: 0.15in 0.2in 0 0.2in;
     color: black;
