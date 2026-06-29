@@ -30,8 +30,76 @@ interface ReceiptModalProps {
 
 type Tab = "recibo" | "factura";
 
-/** Renders children at a fixed half-letter size (816×528 at 96dpi) scaled
- *  to always fit inside the available container width. */
+/** Epson LX-350 — forma continua 9.5 × 11 in (24.13 × 27.94 cm) */
+const RECEIPT_PAGE_W_IN = 9.5;
+const RECEIPT_PAGE_H_IN = 11;
+const RECEIPT_DOC_W_PX = Math.round(RECEIPT_PAGE_W_IN * 96);
+
+const RECEIPT_PRINT_STYLES = `
+  @page { margin: 0; size: ${RECEIPT_PAGE_W_IN}in ${RECEIPT_PAGE_H_IN}in; }
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    width: ${RECEIPT_PAGE_W_IN}in;
+    min-height: ${RECEIPT_PAGE_H_IN}in;
+    margin: 0 auto;
+    padding: 0.15in 0.2in 0 0.2in;
+    color: black;
+    line-height: 1.3;
+    background: white;
+  }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { vertical-align: top; }
+  p, h1, h2, h3, div { margin: 0; }
+`;
+
+function printHtmlContent(content: string, title: string) {
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(
+    `<html><head><title>${title}</title><style>${RECEIPT_PRINT_STYLES}</style></head><body>${content}</body></html>`,
+  );
+  doc.close();
+
+  const images = Array.from(
+    iframe.contentDocument?.images ?? [],
+  ) as HTMLImageElement[];
+
+  const cleanup = () => setTimeout(() => document.body.removeChild(iframe), 1500);
+  const doPrint = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    cleanup();
+  };
+
+  if (images.length > 0) {
+    let loaded = 0;
+    const tryPrint = () => {
+      loaded++;
+      if (loaded >= images.length) doPrint();
+    };
+    images.forEach((img) => {
+      if (img.complete) tryPrint();
+      else {
+        img.onload = tryPrint;
+        img.onerror = tryPrint;
+      }
+    });
+  } else {
+    setTimeout(doPrint, 250);
+  }
+}
+
+/** Renders children at receipt page width (9.5in @ 96dpi) scaled to fit the container. */
 function ScaledDocument({ children }: { children: React.ReactNode }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const innerRef = React.useRef<HTMLDivElement>(null);
@@ -40,7 +108,7 @@ function ScaledDocument({ children }: { children: React.ReactNode }) {
     undefined,
   );
 
-  const DOC_W = 816;
+  const DOC_W = RECEIPT_DOC_W_PX;
 
   React.useEffect(() => {
     const outer = wrapRef.current;
@@ -180,51 +248,7 @@ export default function ReceiptModal({
   const handlePrint = () => {
     const content = document.getElementById("print-container")?.innerHTML;
     if (!content) return;
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(`<html><head><title>Recibo_Venta</title><style>
-        @page { margin: 0; size: 8.5in 5.5in; }
-        @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
-        * { box-sizing: border-box; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; width: 100%; margin: 0; padding: 20px 20px 0 20px; color: black; line-height: 1.3; background: white; }
-        table { border-collapse: collapse; width: 100%; } th, td { vertical-align: top; }
-        p, h1, h2, h3, div { margin: 0; }
-      </style></head><body>${content}</body></html>`);
-      doc.close();
-
-      const images = Array.from(
-        iframe.contentDocument?.images ?? [],
-      ) as HTMLImageElement[];
-      if (images.length > 0) {
-        let loaded = 0;
-        const tryPrint = () => {
-          loaded++;
-          if (loaded >= images.length) {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-            setTimeout(() => document.body.removeChild(iframe), 1500);
-          }
-        };
-        images.forEach((img) => {
-          if (img.complete) {
-            tryPrint();
-          } else {
-            img.onload = tryPrint;
-            img.onerror = tryPrint;
-          }
-        });
-      } else {
-        setTimeout(() => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          setTimeout(() => document.body.removeChild(iframe), 1000);
-        }, 250);
-      }
-    }
+    printHtmlContent(content, "Recibo_Venta");
   };
 
   const handleCertificar = async () => {
@@ -614,8 +638,8 @@ export default function ReceiptModal({
                       <div
                         id="print-container"
                         style={{
-                          width: 816,
-                          minWidth: 816,
+                          width: RECEIPT_DOC_W_PX,
+                          minWidth: RECEIPT_DOC_W_PX,
                           backgroundColor: "white",
                           color: "black",
                           fontFamily: "Arial, Helvetica, sans-serif",
@@ -1114,56 +1138,7 @@ export default function ReceiptModal({
                                 "dte-print-container",
                               )?.innerHTML;
                               if (!content) return;
-                              const iframe = document.createElement("iframe");
-                              iframe.style.display = "none";
-                              document.body.appendChild(iframe);
-                              const doc = iframe.contentWindow?.document;
-                              if (doc) {
-                                doc.open();
-                                doc.write(`<html><head><title>Factura_DTE</title><style>
-                                 @page { margin: 0; size: 8.5in 5.5in; }
-                                 @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
-                                 * { box-sizing: border-box; }
-                                 body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; width: 100%; margin: 0; padding: 20px 20px 0 20px; color: black; line-height: 1.3; background: white; }
-                                 table { border-collapse: collapse; width: 100%; } th, td { vertical-align: top; }
-                                 p, h1, h2, h3, div { margin: 0; }
-                               </style></head><body>${content}</body></html>`);
-                                doc.close();
-                                const images = Array.from(
-                                  iframe.contentDocument?.images ?? [],
-                                ) as HTMLImageElement[];
-                                if (images.length > 0) {
-                                  let loaded = 0;
-                                  const tryPrint = () => {
-                                    loaded++;
-                                    if (loaded >= images.length) {
-                                      iframe.contentWindow?.focus();
-                                      iframe.contentWindow?.print();
-                                      setTimeout(
-                                        () => document.body.removeChild(iframe),
-                                        1500,
-                                      );
-                                    }
-                                  };
-                                  images.forEach((img) => {
-                                    if (img.complete) {
-                                      tryPrint();
-                                    } else {
-                                      img.onload = tryPrint;
-                                      img.onerror = tryPrint;
-                                    }
-                                  });
-                                } else {
-                                  setTimeout(() => {
-                                    iframe.contentWindow?.focus();
-                                    iframe.contentWindow?.print();
-                                    setTimeout(
-                                      () => document.body.removeChild(iframe),
-                                      1000,
-                                    );
-                                  }, 250);
-                                }
-                              }
+                              printHtmlContent(content, "Factura_DTE");
                             }}
                             className={`${isReadonly ? "w-full" : "w-1/2"} flex items-center justify-center gap-2 px-3 py-2.5 bg-transparent text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 rounded-lg font-bold text-sm hover:bg-blue-50 dark:hover:bg-blue-950 transition cursor-pointer`}
                           >
@@ -1177,8 +1152,8 @@ export default function ReceiptModal({
                           <div
                             id="dte-print-container"
                             style={{
-                              width: 816,
-                              minWidth: 816,
+                              width: RECEIPT_DOC_W_PX,
+                              minWidth: RECEIPT_DOC_W_PX,
                               backgroundColor: "white",
                               color: "black",
                               fontFamily: "Arial, Helvetica, sans-serif",
