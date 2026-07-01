@@ -3,9 +3,15 @@ import { z } from "zod";
 export const DetalleSchema = z.object({
   producto_id: z.string().uuid("ID de producto inválido"),
   nombre_producto: z.string().optional(),
-  cantidad: z.coerce.number().min(1, "La cantidad mínima es 1"),
+  cantidad: z.coerce
+    .number()
+    .min(0.5, "La cantidad mínima es 0.5")
+    .refine(
+      (val) => Math.abs(val * 2 - Math.round(val * 2)) < 1e-9,
+      "La cantidad debe ser en incrementos de 0.5",
+    ),
   precio_unitario: z.coerce.number().min(0.01, "El precio debe ser mayor a 0"),
-  subtotal: z.coerce.number(),
+  subtotal: z.coerce.number().min(0, "El subtotal no puede ser negativo"),
 });
 
 export const VentaSchema = z.object({

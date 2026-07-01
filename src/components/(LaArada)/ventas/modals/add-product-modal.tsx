@@ -62,18 +62,23 @@ export default function AddProductModal({
 
   const handleSelect = (prod: ProductoCatalogo) => {
     setSelectedProd(prod);
-    setPrice(prod.precio_base);
+    setPrice(Math.max(0.01, prod.precio_base));
     setSearch(prod.nombre);
   };
 
+  const snapQuantity = (value: number) =>
+    Math.max(0.5, Math.round(value * 2) / 2);
+
   const handleConfirm = () => {
-    if (!selectedProd || !hasEnoughStock || quantity < 1) return;
+    if (!selectedProd || !hasEnoughStock || quantity < 0.5 || price <= 0) return;
+    const finalQuantity = snapQuantity(quantity);
+    const finalPrice = Math.max(0.01, Math.round(price * 100) / 100);
     onAdd({
       producto_id: selectedProd.id,
       nombre_producto: selectedProd.nombre,
-      cantidad: quantity,
-      precio_unitario: price,
-      subtotal: price * quantity,
+      cantidad: finalQuantity,
+      precio_unitario: finalPrice,
+      subtotal: finalPrice * finalQuantity,
     });
     onClose();
   };
@@ -161,6 +166,8 @@ export default function AddProductModal({
             </label>
             <input
               type="number"
+              min={0.5}
+              step={0.5}
               className={cn(
                 "w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none font-bold transition-all",
                 !hasEnoughStock
@@ -168,7 +175,12 @@ export default function AddProductModal({
                   : "focus:ring-primary/20",
               )}
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e) => {
+                const parsed = parseFloat(e.target.value);
+                if (Number.isNaN(parsed) || parsed < 0) return;
+                setQuantity(parsed);
+              }}
+              onBlur={() => setQuantity(snapQuantity(quantity))}
             />
             {selectedProd && (
               <div className="mt-1 flex flex-col gap-0.5">
@@ -197,10 +209,22 @@ export default function AddProductModal({
             </label>
             <input
               type="number"
-              step="0.01"
+              min={0.01}
+              step={0.01}
               className="w-full h-10 px-3 border rounded-lg bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 text-right"
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
+              onChange={(e) => {
+                const parsed = parseFloat(e.target.value);
+                if (Number.isNaN(parsed) || parsed < 0) return;
+                setPrice(parsed);
+              }}
+              onBlur={() => {
+                if (price <= 0) {
+                  setPrice(0);
+                  return;
+                }
+                setPrice(Math.max(0.01, Math.round(price * 100) / 100));
+              }}
             />
           </div>
         </div>
@@ -211,12 +235,17 @@ export default function AddProductModal({
               Subtotal
             </span>
             <span className="text-xl font-black text-primary">
-              Q{(price * quantity).toFixed(2)}
+              Q{Math.max(0, price * quantity).toFixed(2)}
             </span>
           </div>
           <button
             onClick={handleConfirm}
-            disabled={!selectedProd || !hasEnoughStock || quantity < 1}
+            disabled={
+              !selectedProd ||
+              !hasEnoughStock ||
+              quantity < 0.5 ||
+              price <= 0
+            }
             className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
           >
             AGREGAR

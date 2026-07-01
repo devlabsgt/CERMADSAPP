@@ -231,6 +231,9 @@ export default function SaleModal({
     }
   };
 
+  const formatCantidad = (cantidad: number) =>
+    Number.isInteger(cantidad) ? cantidad : cantidad.toFixed(1);
+
   const today = new Date().toISOString().split("T")[0];
 
   if (!isOpen) return null;
@@ -445,7 +448,9 @@ export default function SaleModal({
                                   Cant.
                                 </span>
                                 <span className="font-mono bg-muted/30 rounded px-2 py-1 inline-block">
-                                  {watch(`detalles.${index}.cantidad`)}
+                                  {formatCantidad(
+                                    watch(`detalles.${index}.cantidad`),
+                                  )}
                                 </span>
                               </div>
                               <div className="text-right">
@@ -479,7 +484,9 @@ export default function SaleModal({
                                 "Producto"}
                             </div>
                             <div className="col-span-2 text-center font-mono bg-muted/30 rounded py-0.5 mx-2">
-                              {watch(`detalles.${index}.cantidad`)}
+                              {formatCantidad(
+                                watch(`detalles.${index}.cantidad`),
+                              )}
                             </div>
                             <div className="col-span-2 text-right text-muted-foreground whitespace-nowrap">
                               Q
